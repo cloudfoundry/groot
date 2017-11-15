@@ -21,10 +21,12 @@ var _ = Describe("groot", func() {
 		var (
 			rootfsURI = "some-rootfs-uri"
 			handle    = "some-handle"
+			logLevel  string
+			env       []string
 			tempDir   string
 			stdout    *bytes.Buffer
+			stderr    *bytes.Buffer
 
-			tootCmd *exec.Cmd
 			exitErr error
 		)
 
@@ -39,14 +41,23 @@ var _ = Describe("groot", func() {
 			tempDir, err = ioutil.TempDir("", "groot-integration-tests")
 			Expect(err).NotTo(HaveOccurred())
 
+			logLevel = ""
+			env = []string{"TOOT_BASE_DIR=" + tempDir}
 			stdout = new(bytes.Buffer)
-			tootCmd = exec.Command(tootBinPath, "create", rootfsURI, handle)
-			tootCmd.Stdout = io.MultiWriter(stdout, GinkgoWriter)
-			tootCmd.Stderr = GinkgoWriter
-			tootCmd.Env = append(os.Environ(), "TOOT_BASE_DIR="+tempDir)
+			stderr = new(bytes.Buffer)
 		})
 
 		JustBeforeEach(func() {
+			globalFlags := []string{}
+			if logLevel != "" {
+				globalFlags = append(globalFlags, "--log-level", logLevel)
+			}
+
+			tootArgv := append(globalFlags, "create", rootfsURI, handle)
+			tootCmd := exec.Command(tootBinPath, tootArgv...)
+			tootCmd.Stdout = io.MultiWriter(stdout, GinkgoWriter)
+			tootCmd.Stderr = io.MultiWriter(stderr, GinkgoWriter)
+			tootCmd.Env = append(os.Environ(), env...)
 			exitErr = tootCmd.Run()
 		})
 
@@ -70,20 +81,51 @@ var _ = Describe("groot", func() {
 				readTestArgsFile(toot.BundleArgsFileName, &bundleArgs)
 				Expect(bundleArgs).To(Equal(toot.BundleArgs{ID: handle, LayerIDs: []string{}}))
 			})
+
+			It("logs to stderr with an appropriate lager session, defaulting to info level", func() {
+				Expect(stderr.String()).To(ContainSubstring("groot.create.bundle-info"))
+				Expect(stderr.String()).NotTo(ContainSubstring("bundle-debug"))
+			})
+
+			Context("when the log level is specified", func() {
+				BeforeEach(func() {
+					logLevel = "debug"
+				})
+
+				It("logs to stderr with the specified lager level", func() {
+					Expect(stderr.String()).To(ContainSubstring("bundle-debug"))
+				})
+			})
 		})
 
 		Describe("failure", func() {
-			Context("when driver.Bundle() returns an error", func() {
-				BeforeEach(func() {
-					tootCmd.Env = append(tootCmd.Env, "TOOT_BUNDLE_ERROR=true")
-				})
-
+			itExitsWithOne := func() {
 				It("exits with 1", func() {
 					Expect(exitErr.(*exec.ExitError).Sys().(syscall.WaitStatus).ExitStatus()).To(Equal(1))
 				})
+			}
+
+			Context("when driver.Bundle() returns an error", func() {
+				BeforeEach(func() {
+					env = append(env, "TOOT_BUNDLE_ERROR=true")
+				})
+
+				itExitsWithOne()
 
 				It("prints the error", func() {
 					Expect(stdout.String()).To(Equal("bundle-err\n"))
+				})
+			})
+
+			Context("when the specified log level is invalid", func() {
+				BeforeEach(func() {
+					logLevel = "lol"
+				})
+
+				itExitsWithOne()
+
+				It("prints an error", func() {
+					Expect(stdout.String()).To(ContainSubstring("lol"))
 				})
 			})
 		})

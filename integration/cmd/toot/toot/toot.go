@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"code.cloudfoundry.org/lager"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 )
 
@@ -14,7 +15,10 @@ type Toot struct {
 	BaseDir string
 }
 
-func (t *Toot) Bundle(id string, layerIDs []string) (specs.Spec, error) {
+func (t *Toot) Bundle(logger lager.Logger, id string, layerIDs []string) (specs.Spec, error) {
+	logger.Info("bundle-info")
+	logger.Debug("bundle-debug")
+
 	if _, exists := os.LookupEnv("TOOT_BUNDLE_ERROR"); exists {
 		return specs.Spec{}, errors.New("bundle-err")
 	}

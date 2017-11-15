@@ -5,5 +5,5 @@ import (
 )
 
 func (g *Groot) Create(handle string) (specs.Spec, error) {
-	return g.Driver.Bundle(handle, []string{})
+	return g.Driver.Bundle(g.Logger.Session("create"), handle, []string{})
 }
