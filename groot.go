@@ -13,17 +13,22 @@ type Driver interface {
 	Bundle(id string, layerIDs []string) (specs.Spec, error)
 }
 
+type Groot struct {
+	Driver Driver
+}
+
 func Run(driver Driver, argv []string) {
+	g := Groot{Driver: driver}
+
 	app := cli.NewApp()
 	app.Commands = []cli.Command{
 		{
 			Name: "create",
 			Action: func(ctx *cli.Context) error {
 				handle := ctx.Args()[1]
-
-				runtimeSpec, err := driver.Bundle(handle, []string{})
+				runtimeSpec, err := g.Create(handle)
 				if err != nil {
-					return fmt.Errorf("driver.Bundle: %s", err)
+					return err
 				}
 
 				return json.NewEncoder(os.Stdout).Encode(runtimeSpec)
