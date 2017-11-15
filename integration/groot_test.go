@@ -83,7 +83,7 @@ var _ = Describe("groot", func() {
 				})
 
 				It("prints the error", func() {
-					Expect(stdout.String()).To(Equal("error: driver.Bundle: bundle-err\n"))
+					Expect(stdout.String()).To(Equal("bundle-err\n"))
 				})
 			})
 		})

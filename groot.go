@@ -37,7 +37,7 @@ func Run(driver Driver, argv []string) {
 	}
 
 	if err := app.Run(argv); err != nil {
-		fmt.Printf("error: %s\n", err)
+		fmt.Println(err)
 		os.Exit(1)
 	}
 }
