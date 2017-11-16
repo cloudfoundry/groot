@@ -10,13 +10,15 @@ import (
 
 var tootBinPath string
 
-var _ = BeforeSuite(func() {
-	var err error
-	tootBinPath, err = gexec.Build("code.cloudfoundry.org/groot/integration/cmd/toot")
+var _ = SynchronizedBeforeSuite(func() []byte {
+	binPath, err := gexec.Build("code.cloudfoundry.org/groot/integration/cmd/toot")
 	Expect(err).NotTo(HaveOccurred())
+	return []byte(binPath)
+}, func(tootBinPathBytes []byte) {
+	tootBinPath = string(tootBinPathBytes)
 })
 
-var _ = AfterSuite(func() {
+var _ = SynchronizedAfterSuite(func() {}, func() {
 	gexec.CleanupBuildArtifacts()
 })
 
