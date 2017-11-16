@@ -3,6 +3,7 @@ package groot
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 
 	"code.cloudfoundry.org/lager"
@@ -10,13 +11,24 @@ import (
 	"github.com/urfave/cli"
 )
 
+//go:generate counterfeiter . Driver
 type Driver interface {
+	Unpack(logger lager.Logger, id, parentID string, layerTar io.Reader) error
 	Bundle(logger lager.Logger, id string, layerIDs []string) (specs.Spec, error)
 }
 
+// LayerIDGenerator generates layer IDs for local rootfs tars. This interface
+// may end up disapppearing in favour of something more general when we add
+// remote OCI image support.
+//go:generate counterfeiter . LayerIDGenerator
+type LayerIDGenerator interface {
+	GenerateLayerID(localRootfsPath string) (string, error)
+}
+
 type Groot struct {
-	Driver Driver
-	Logger lager.Logger
+	LayerIDGenerator LayerIDGenerator
+	Driver           Driver
+	Logger           lager.Logger
 }
 
 func Run(driver Driver, argv []string) {
@@ -35,8 +47,9 @@ func Run(driver Driver, argv []string) {
 		{
 			Name: "create",
 			Action: func(ctx *cli.Context) error {
+				rootfsURI := ctx.Args()[0]
 				handle := ctx.Args()[1]
-				runtimeSpec, err := g.Create(handle)
+				runtimeSpec, err := g.Create(handle, rootfsURI)
 				if err != nil {
 					return err
 				}
@@ -70,7 +83,11 @@ func newGroot(driver Driver, conf config) (*Groot, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Groot{Driver: driver, Logger: logger}, nil
+	return &Groot{
+		Driver:           driver,
+		Logger:           logger,
+		LayerIDGenerator: &LocalLayerIDGenerator{ModTimer: statModTimer{}},
+	}, nil
 }
 
 func newLogger(logLevelStr string) (lager.Logger, error) {

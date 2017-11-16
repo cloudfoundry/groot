@@ -3,6 +3,7 @@ package toot
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -13,6 +14,20 @@ import (
 
 type Toot struct {
 	BaseDir string
+}
+
+func (t *Toot) Unpack(logger lager.Logger, id, parentID string, layerTar io.Reader) error {
+	logger.Info("unpack-info")
+	logger.Debug("unpack-debug")
+
+	if _, exists := os.LookupEnv("TOOT_UNPACK_ERROR"); exists {
+		return errors.New("unpack-err")
+	}
+
+	layerTarContents, err := ioutil.ReadAll(layerTar)
+	must(err)
+	saveObject(UnpackArgs{ID: id, ParentID: parentID, LayerTarContents: layerTarContents}, t.pathTo(UnpackArgsFileName))
+	return nil
 }
 
 func (t *Toot) Bundle(logger lager.Logger, id string, layerIDs []string) (specs.Spec, error) {
@@ -28,12 +43,19 @@ func (t *Toot) Bundle(logger lager.Logger, id string, layerIDs []string) (specs.
 }
 
 const (
+	UnpackArgsFileName = "unpack-args"
 	BundleArgsFileName = "bundle-args"
 )
 
 var (
 	BundleRuntimeSpec = specs.Spec{Root: &specs.Root{Path: "toot-rootfs-path"}}
 )
+
+type UnpackArgs struct {
+	ID               string
+	ParentID         string
+	LayerTarContents []byte
+}
 
 type BundleArgs struct {
 	ID       string
