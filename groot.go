@@ -27,9 +27,8 @@ func Run(driver Driver, argv []string) {
 	app := cli.NewApp()
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
-			Name:  "log-level",
-			Usage: "Set logging level <debug|info|error|fatal>",
-			Value: "info",
+			Name:  "config",
+			Usage: "Path to config file",
 		},
 	}
 	app.Commands = []cli.Command{
@@ -47,23 +46,14 @@ func Run(driver Driver, argv []string) {
 		},
 	}
 	app.Before = func(ctx *cli.Context) error {
-		logLevels := map[string]lager.LogLevel{
-			"debug": lager.DEBUG,
-			"info":  lager.INFO,
-			"error": lager.ERROR,
-			"fatal": lager.FATAL,
+		conf, err := parseConfig(ctx.GlobalString("config"))
+		if err != nil {
+			return silentError(err)
 		}
-
-		logLevelStr := ctx.GlobalString("log-level")
-		logLevel, ok := logLevels[logLevelStr]
-		if !ok {
-			return silentError("invalid log level: " + logLevelStr)
+		g, err = newGroot(driver, conf)
+		if err != nil {
+			return silentError(err)
 		}
-
-		logger := lager.NewLogger("groot")
-		logger.RegisterSink(lager.NewWriterSink(os.Stderr, logLevel))
-		g = &Groot{Driver: driver, Logger: logger}
-
 		return nil
 	}
 
@@ -75,16 +65,43 @@ func Run(driver Driver, argv []string) {
 	}
 }
 
+func newGroot(driver Driver, conf config) (*Groot, error) {
+	logger, err := newLogger(conf.LogLevel)
+	if err != nil {
+		return nil, err
+	}
+	return &Groot{Driver: driver, Logger: logger}, nil
+}
+
+func newLogger(logLevelStr string) (lager.Logger, error) {
+	logLevels := map[string]lager.LogLevel{
+		"debug": lager.DEBUG,
+		"info":  lager.INFO,
+		"error": lager.ERROR,
+		"fatal": lager.FATAL,
+	}
+
+	logLevel, ok := logLevels[logLevelStr]
+	if !ok {
+		return nil, fmt.Errorf("invalid log level: %s", logLevelStr)
+	}
+
+	logger := lager.NewLogger("groot")
+	logger.RegisterSink(lager.NewWriterSink(os.Stderr, logLevel))
+
+	return logger, nil
+}
+
 // SilentError silences errors. urfave/cli already prints certain errors, we
 // don't want to print them twice
 type SilentError struct {
-	Msg string
+	Underlying error
 }
 
 func (e SilentError) Error() string {
-	return e.Msg
+	return e.Underlying.Error()
 }
 
-func silentError(msg string) SilentError {
-	return SilentError{Msg: msg}
+func silentError(err error) SilentError {
+	return SilentError{Underlying: err}
 }

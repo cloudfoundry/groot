@@ -3,6 +3,7 @@ package integration_test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -19,15 +20,14 @@ import (
 var _ = Describe("groot", func() {
 	Describe("create", func() {
 		var (
-			rootfsURI = "some-rootfs-uri"
-			handle    = "some-handle"
-			logLevel  string
-			env       []string
-			tempDir   string
-			stdout    *bytes.Buffer
-			stderr    *bytes.Buffer
-
-			exitErr error
+			rootfsURI      = "some-rootfs-uri"
+			handle         = "some-handle"
+			logLevel       string
+			configFilePath string
+			env            []string
+			tempDir        string
+			stdout         *bytes.Buffer
+			stderr         *bytes.Buffer
 		)
 
 		readTestArgsFile := func(filename string, ptr interface{}) {
@@ -40,25 +40,12 @@ var _ = Describe("groot", func() {
 			var err error
 			tempDir, err = ioutil.TempDir("", "groot-integration-tests")
 			Expect(err).NotTo(HaveOccurred())
+			configFilePath = filepath.Join(tempDir, "groot-config.yml")
 
 			logLevel = ""
 			env = []string{"TOOT_BASE_DIR=" + tempDir}
 			stdout = new(bytes.Buffer)
 			stderr = new(bytes.Buffer)
-		})
-
-		JustBeforeEach(func() {
-			globalFlags := []string{}
-			if logLevel != "" {
-				globalFlags = append(globalFlags, "--log-level", logLevel)
-			}
-
-			tootArgv := append(globalFlags, "create", rootfsURI, handle)
-			tootCmd := exec.Command(tootBinPath, tootArgv...)
-			tootCmd.Stdout = io.MultiWriter(stdout, GinkgoWriter)
-			tootCmd.Stderr = io.MultiWriter(stderr, GinkgoWriter)
-			tootCmd.Env = append(os.Environ(), env...)
-			exitErr = tootCmd.Run()
 		})
 
 		AfterEach(func() {
@@ -67,7 +54,15 @@ var _ = Describe("groot", func() {
 
 		Describe("success", func() {
 			JustBeforeEach(func() {
-				Expect(exitErr).NotTo(HaveOccurred())
+				configYml := fmt.Sprintf(`log_level: %s`, logLevel)
+				Expect(ioutil.WriteFile(configFilePath, []byte(configYml), 0600)).To(Succeed())
+
+				tootArgv := []string{"--config", configFilePath, "create", rootfsURI, handle}
+				tootCmd := exec.Command(tootBinPath, tootArgv...)
+				tootCmd.Stdout = io.MultiWriter(stdout, GinkgoWriter)
+				tootCmd.Stderr = io.MultiWriter(stderr, GinkgoWriter)
+				tootCmd.Env = append(os.Environ(), env...)
+				Expect(tootCmd.Run()).To(Succeed())
 			})
 
 			It("prints a runtime spec to stdout", func() {
@@ -99,21 +94,68 @@ var _ = Describe("groot", func() {
 		})
 
 		Describe("failure", func() {
-			itExitsWithOne := func() {
-				It("exits with 1", func() {
-					Expect(exitErr.(*exec.ExitError).Sys().(syscall.WaitStatus).ExitStatus()).To(Equal(1))
-				})
-			}
+			var (
+				writeConfigFile bool
+			)
+
+			BeforeEach(func() {
+				writeConfigFile = true
+			})
+
+			JustBeforeEach(func() {
+				if writeConfigFile {
+					configYml := fmt.Sprintf(`log_level: %s`, logLevel)
+					Expect(ioutil.WriteFile(configFilePath, []byte(configYml), 0600)).To(Succeed())
+				}
+
+				tootArgv := []string{"--config", configFilePath, "create", rootfsURI, handle}
+				tootCmd := exec.Command(tootBinPath, tootArgv...)
+				tootCmd.Stdout = io.MultiWriter(stdout, GinkgoWriter)
+				tootCmd.Stderr = io.MultiWriter(stderr, GinkgoWriter)
+				tootCmd.Env = append(os.Environ(), env...)
+				exitErr := tootCmd.Run()
+				Expect(exitErr.(*exec.ExitError).Sys().(syscall.WaitStatus).ExitStatus()).To(Equal(1))
+			})
 
 			Context("when driver.Bundle() returns an error", func() {
 				BeforeEach(func() {
 					env = append(env, "TOOT_BUNDLE_ERROR=true")
 				})
 
-				itExitsWithOne()
-
 				It("prints the error", func() {
 					Expect(stdout.String()).To(Equal("bundle-err\n"))
+				})
+			})
+
+			Context("when no config file is provided", func() {
+				BeforeEach(func() {
+					configFilePath = ""
+					writeConfigFile = false
+				})
+
+				It("prints an error", func() {
+					Expect(stdout.String()).To(ContainSubstring("please provide --config"))
+				})
+			})
+
+			Context("when the config file path is not an existing file", func() {
+				BeforeEach(func() {
+					writeConfigFile = false
+				})
+
+				It("prints an error", func() {
+					Expect(stdout.String()).To(ContainSubstring("no such file or directory"))
+				})
+			})
+
+			Context("when the config file is invalid yaml", func() {
+				BeforeEach(func() {
+					writeConfigFile = false
+					Expect(ioutil.WriteFile(configFilePath, []byte("%haha"), 0600)).To(Succeed())
+				})
+
+				It("prints an error", func() {
+					Expect(stdout.String()).To(ContainSubstring("yaml"))
 				})
 			})
 
@@ -121,8 +163,6 @@ var _ = Describe("groot", func() {
 				BeforeEach(func() {
 					logLevel = "lol"
 				})
-
-				itExitsWithOne()
 
 				It("prints an error", func() {
 					Expect(stdout.String()).To(ContainSubstring("lol"))
