@@ -128,8 +128,8 @@ var _ = Describe("groot", func() {
 					})
 				})
 
-				Context("when the rootfs file has not changed", func() {
-					It("generates the same layer ID", func() {
+				Context("when the rootfs file timestamp has changed", func() {
+					It("generates a different layer ID", func() {
 						var unpackArgs toot.UnpackArgs
 						readTestArgsFile(toot.UnpackArgsFileName, &unpackArgs)
 						firstInvocationLayerID := unpackArgs.ID
