@@ -99,7 +99,7 @@ var _ = Describe("groot", func() {
 				var bundleArgs toot.BundleArgs
 				readTestArgsFile(toot.BundleArgsFileName, &bundleArgs)
 				Expect(bundleArgs.ID).To(Equal(handle))
-				Expect(bundleArgs.LayerIDs).To(Equal([]string{unpackArgs.ID}))
+				Expect(bundleArgs.LayerIDs).To(ConsistOf(unpackArgs.ID))
 			})
 
 			It("logs to stderr with an appropriate lager session, defaulting to info level", func() {
