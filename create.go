@@ -16,6 +16,7 @@ func (g *Groot) Create(handle, rootfsURI string) (specs.Spec, error) {
 	if err != nil {
 		return specs.Spec{}, err
 	}
+	defer rootfsFile.Close()
 
 	if err := g.Driver.Unpack(g.Logger.Session("unpack"), layerID, "", rootfsFile); err != nil {
 		return specs.Spec{}, err

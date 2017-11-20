@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"syscall"
 	"time"
 
@@ -21,14 +22,18 @@ import (
 var _ = Describe("groot", func() {
 	Describe("create", func() {
 		var (
-			rootfsURI      string
-			handle         = "some-handle"
-			logLevel       string
-			configFilePath string
-			env            []string
-			tempDir        string
-			stdout         *bytes.Buffer
-			stderr         *bytes.Buffer
+			rootfsURI            string
+			handle               = "some-handle"
+			logLevel             string
+			configFilePath       string
+			env                  []string
+			tempDir              string
+			stdout               *bytes.Buffer
+			stderr               *bytes.Buffer
+			notFoundRuntimeError = map[string]string{
+				"linux":   "no such file or directory",
+				"windows": "The system cannot find the file specified.",
+			}
 		)
 
 		readTestArgsFile := func(filename string, ptr interface{}) {
@@ -214,7 +219,7 @@ var _ = Describe("groot", func() {
 				})
 
 				It("prints an error", func() {
-					Expect(stdout.String()).To(ContainSubstring("no such file or directory"))
+					Expect(stdout.String()).To(ContainSubstring(notFoundRuntimeError[runtime.GOOS]))
 				})
 			})
 
@@ -235,7 +240,7 @@ var _ = Describe("groot", func() {
 				})
 
 				It("prints an error", func() {
-					Expect(stdout.String()).To(ContainSubstring("no such file or directory"))
+					Expect(stdout.String()).To(ContainSubstring(notFoundRuntimeError[runtime.GOOS]))
 				})
 			})
 

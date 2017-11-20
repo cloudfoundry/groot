@@ -1,13 +1,16 @@
 package groot_test
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 
 	"code.cloudfoundry.org/groot"
 	"code.cloudfoundry.org/groot/grootfakes"
+	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -50,7 +53,17 @@ var _ = Describe("Groot", func() {
 	Describe("Create succeeding", func() {
 		var (
 			returnedRuntimeSpec specs.Spec
+			rootfsFileBuffer    *bytes.Buffer
 		)
+
+		BeforeEach(func() {
+			rootfsFileBuffer = bytes.NewBuffer([]byte{})
+			driver.UnpackStub = func(logger lager.Logger, id, parentID string, layerTar io.Reader) error {
+				_, err := io.Copy(rootfsFileBuffer, layerTar)
+				Expect(err).NotTo(HaveOccurred())
+				return nil
+			}
+		})
 
 		JustBeforeEach(func() {
 			var err error
@@ -65,11 +78,11 @@ var _ = Describe("Groot", func() {
 
 		It("calls driver.Unpack with the expected args", func() {
 			Expect(driver.UnpackCallCount()).To(Equal(1))
-			_, id, parentID, tarReader := driver.UnpackArgsForCall(0)
+			_, id, parentID, _ := driver.UnpackArgsForCall(0)
 			Expect(id).To(Equal("checksum"))
 			Expect(parentID).To(Equal(""))
 
-			tarContents, err := ioutil.ReadAll(tarReader)
+			tarContents, err := ioutil.ReadAll(rootfsFileBuffer)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(tarContents)).To(Equal("afile"))
 		})
