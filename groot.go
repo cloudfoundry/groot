@@ -37,6 +37,7 @@ func Run(driver Driver, argv []string) {
 	var g *Groot
 
 	app := cli.NewApp()
+	app.Usage = "A garden image plugin"
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "config",
