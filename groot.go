@@ -41,6 +41,7 @@ func Run(driver Driver, argv []string) {
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:  "config",
+			Value: "",
 			Usage: "Path to config file",
 		},
 	}

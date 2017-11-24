@@ -70,8 +70,10 @@ var _ = Describe("groot", func() {
 
 		Describe("success", func() {
 			JustBeforeEach(func() {
-				configYml := fmt.Sprintf(`log_level: %s`, logLevel)
-				Expect(ioutil.WriteFile(configFilePath, []byte(configYml), 0600)).To(Succeed())
+				if configFilePath != "" {
+					configYml := fmt.Sprintf(`log_level: %s`, logLevel)
+					Expect(ioutil.WriteFile(configFilePath, []byte(configYml), 0600)).To(Succeed())
+				}
 
 				Expect(ioutil.WriteFile(rootfsURI, []byte("a-rootfs"), 0600)).To(Succeed())
 
@@ -105,6 +107,17 @@ var _ = Describe("groot", func() {
 			It("logs to stderr with an appropriate lager session, defaulting to info level", func() {
 				Expect(stderr.String()).To(ContainSubstring("groot.create.bundle-info"))
 				Expect(stderr.String()).NotTo(ContainSubstring("bundle-debug"))
+			})
+
+			Context("when no config file is provided", func() {
+				BeforeEach(func() {
+					configFilePath = ""
+				})
+
+				It("uses the default log leval", func() {
+					Expect(stderr.String()).ToNot(ContainSubstring("bundle-debug"))
+					Expect(stderr.String()).To(ContainSubstring("bundle-info"))
+				})
 			})
 
 			Context("when the log level is specified", func() {
@@ -220,17 +233,6 @@ var _ = Describe("groot", func() {
 
 				It("prints an error", func() {
 					Expect(stdout.String()).To(ContainSubstring(notFoundRuntimeError[runtime.GOOS]))
-				})
-			})
-
-			Context("when no config file is provided", func() {
-				BeforeEach(func() {
-					configFilePath = ""
-					writeConfigFile = false
-				})
-
-				It("prints an error", func() {
-					Expect(stdout.String()).To(ContainSubstring("please provide --config"))
 				})
 			})
 
