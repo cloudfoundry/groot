@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 type LocalLayerIDGenerator struct {
@@ -20,7 +22,7 @@ type ModTimer interface {
 func (l *LocalLayerIDGenerator) GenerateLayerID(pathname string) (string, error) {
 	modTime, err := l.ModTimer.ModTime(pathname)
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "fetching modification time")
 	}
 
 	layerID := sha256.Sum256([]byte(
