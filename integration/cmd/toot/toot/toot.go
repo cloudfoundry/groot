@@ -42,14 +42,31 @@ func (t *Toot) Bundle(logger lager.Logger, id string, layerIDs []string) (specs.
 	return BundleRuntimeSpec, nil
 }
 
+func (t *Toot) Exists(logger lager.Logger, layerID string) bool {
+	logger.Info("bundle-info")
+	logger.Debug("bundle-debug")
+
+	if _, exists := os.LookupEnv("TOOT_LAYER_EXISTS"); exists {
+		return true
+	}
+
+	saveObject(ExistsArgs{LayerID: layerID}, t.pathTo(ExistsArgsFileName))
+	return false
+}
+
 const (
 	UnpackArgsFileName = "unpack-args"
 	BundleArgsFileName = "bundle-args"
+	ExistsArgsFileName = "exists-args"
 )
 
 var (
 	BundleRuntimeSpec = specs.Spec{Root: &specs.Root{Path: "toot-rootfs-path"}}
 )
+
+type ExistsArgs struct {
+	LayerID string
+}
 
 type UnpackArgs struct {
 	ID               string

@@ -36,8 +36,12 @@ var _ = Describe("groot", func() {
 			}
 		)
 
+		argFilePath := func(filename string) string {
+			return filepath.Join(tempDir, filename)
+		}
+
 		readTestArgsFile := func(filename string, ptr interface{}) {
-			content, err := ioutil.ReadFile(filepath.Join(tempDir, filename))
+			content, err := ioutil.ReadFile(argFilePath(filename))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(json.Unmarshal(content, ptr)).To(Succeed())
 		}
@@ -171,6 +175,38 @@ var _ = Describe("groot", func() {
 						secondInvocationLayerID := unpackArgs.ID
 
 						Expect(secondInvocationLayerID).NotTo(Equal(firstInvocationLayerID))
+					})
+				})
+			})
+
+			Describe("layer caching", func() {
+				It("calls exists", func() {
+					var existsArgs toot.ExistsArgs
+					readTestArgsFile(toot.ExistsArgsFileName, &existsArgs)
+					Expect(existsArgs.LayerID).ToNot(BeEmpty())
+				})
+
+				Context("when the layer is not cached", func() {
+					It("calls unpack with the same layerID", func() {
+						var existsArgs toot.ExistsArgs
+						readTestArgsFile(toot.ExistsArgsFileName, &existsArgs)
+						Expect(existsArgs.LayerID).ToNot(BeEmpty())
+
+						Expect(argFilePath(toot.UnpackArgsFileName)).To(BeAnExistingFile())
+
+						var unpackArgs toot.UnpackArgs
+						readTestArgsFile(toot.UnpackArgsFileName, &unpackArgs)
+						Expect(unpackArgs.ID).To(Equal(existsArgs.LayerID))
+					})
+				})
+
+				Context("when the layer is cached", func() {
+					BeforeEach(func() {
+						env = append(env, "TOOT_LAYER_EXISTS=true")
+					})
+
+					It("doesn't call unpack", func() {
+						Expect(argFilePath(toot.UnpackArgsFileName)).ToNot(BeAnExistingFile())
 					})
 				})
 			})

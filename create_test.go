@@ -76,6 +76,12 @@ var _ = Describe("Groot", func() {
 			Expect(layerIDGenerator.GenerateLayerIDArgsForCall(0)).To(Equal(rootfsFilePath))
 		})
 
+		It("calls driver.Exists with the expected args", func() {
+			Expect(driver.ExistsCallCount()).To(Equal(1))
+			_, layerID := driver.ExistsArgsForCall(0)
+			Expect(layerID).To(Equal("checksum"))
+		})
+
 		It("calls driver.Unpack with the expected args", func() {
 			Expect(driver.UnpackCallCount()).To(Equal(1))
 			_, id, parentID, _ := driver.UnpackArgsForCall(0)
@@ -96,6 +102,16 @@ var _ = Describe("Groot", func() {
 			_, id, layerIDs := driver.BundleArgsForCall(0)
 			Expect(id).To(Equal("some-handle"))
 			Expect(layerIDs).To(Equal([]string{"checksum"}))
+		})
+
+		Context("when the layer already exists", func() {
+			BeforeEach(func() {
+				driver.ExistsReturns(true)
+			})
+
+			It("doesn't call driver.Unpack", func() {
+				Expect(driver.UnpackCallCount()).To(Equal(0))
+			})
 		})
 	})
 

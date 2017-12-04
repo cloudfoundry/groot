@@ -13,8 +13,9 @@ import (
 
 //go:generate counterfeiter . Driver
 type Driver interface {
-	Unpack(logger lager.Logger, id, parentID string, layerTar io.Reader) error
-	Bundle(logger lager.Logger, id string, layerIDs []string) (specs.Spec, error)
+	Unpack(logger lager.Logger, layerId, parentID string, layerTar io.Reader) error
+	Bundle(logger lager.Logger, bundleId string, layerIDs []string) (specs.Spec, error)
+	Exists(logger lager.Logger, layerId string) bool
 }
 
 // LayerIDGenerator generates layer IDs for local rootfs tars. This interface
