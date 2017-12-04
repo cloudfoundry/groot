@@ -41,7 +41,7 @@ var _ = Describe("LocalLayerIDGenerator", func() {
 			It("returns an error", func() {
 				modTimer.ModTimeReturns(time.Time{}, errors.New("modtime-error"))
 				_, err := l.GenerateLayerID("some-path")
-				Expect(err).To(MatchError("modtime-error"))
+				Expect(err).To(MatchError(ContainSubstring("modtime-error")))
 			})
 		})
 	})

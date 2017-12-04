@@ -2,7 +2,6 @@ package groot_test
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -15,6 +14,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
+	errors "github.com/pkg/errors"
 )
 
 var _ = Describe("Groot", func() {
@@ -135,7 +135,7 @@ var _ = Describe("Groot", func() {
 			})
 
 			It("returns an error", func() {
-				Expect(createErr).To(BeAssignableToTypeOf(&os.PathError{}))
+				Expect(errors.Cause(createErr)).To(BeAssignableToTypeOf(&os.PathError{}))
 			})
 		})
 
@@ -145,7 +145,7 @@ var _ = Describe("Groot", func() {
 			})
 
 			It("returns the error", func() {
-				Expect(createErr).To(MatchError("generating-failed"))
+				Expect(createErr).To(MatchError(ContainSubstring("generating-failed")))
 			})
 		})
 
@@ -155,7 +155,7 @@ var _ = Describe("Groot", func() {
 			})
 
 			It("returns the error", func() {
-				Expect(createErr).To(MatchError("unpack-failed"))
+				Expect(createErr).To(MatchError(ContainSubstring("unpack-failed")))
 			})
 		})
 
@@ -165,7 +165,7 @@ var _ = Describe("Groot", func() {
 			})
 
 			It("returns the error", func() {
-				Expect(createErr).To(MatchError("bundle-failed"))
+				Expect(createErr).To(MatchError(ContainSubstring("bundle-failed")))
 			})
 		})
 	})

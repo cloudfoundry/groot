@@ -109,7 +109,7 @@ var _ = Describe("groot", func() {
 			})
 
 			It("logs to stderr with an appropriate lager session, defaulting to info level", func() {
-				Expect(stderr.String()).To(ContainSubstring("groot.create.bundle-info"))
+				Expect(stderr.String()).To(ContainSubstring("groot.create.bundle.bundle-info"))
 				Expect(stderr.String()).NotTo(ContainSubstring("bundle-debug"))
 			})
 
@@ -248,7 +248,7 @@ var _ = Describe("groot", func() {
 				})
 
 				It("prints the error", func() {
-					Expect(stdout.String()).To(Equal("bundle-err\n"))
+					Expect(stdout.String()).To(ContainSubstring("bundle-err\n"))
 				})
 			})
 
@@ -258,7 +258,7 @@ var _ = Describe("groot", func() {
 				})
 
 				It("prints the error", func() {
-					Expect(stdout.String()).To(Equal("unpack-err\n"))
+					Expect(stdout.String()).To(ContainSubstring("unpack-err\n"))
 				})
 			})
 
