@@ -11,6 +11,10 @@ inputs:
 - name: groot
   path: src/code.cloudfoundry.org/groot
 
+params:
+  REGISTRY_USERNAME:
+  REGISTRY_PASSWORD:
+
 caches:
 - path: pkg
 

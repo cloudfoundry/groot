@@ -4,32 +4,40 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 
+	"code.cloudfoundry.org/groot/fetcher"
+	"code.cloudfoundry.org/groot/fetcher/filefetcher"
+	"code.cloudfoundry.org/groot/fetcher/layerfetcher"
+	"code.cloudfoundry.org/groot/fetcher/layerfetcher/source"
+	"code.cloudfoundry.org/groot/imagepuller"
 	"code.cloudfoundry.org/lager"
-	specs "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/containers/image/types"
+	runspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/urfave/cli"
 )
 
+// Driver should implement the filesystem interaction
 //go:generate counterfeiter . Driver
 type Driver interface {
-	Unpack(logger lager.Logger, layerId, parentID string, layerTar io.Reader) error
-	Bundle(logger lager.Logger, bundleId string, layerIDs []string) (specs.Spec, error)
-	Exists(logger lager.Logger, layerId string) bool
+	Unpack(logger lager.Logger, layerID, parentID string, layerTar io.Reader) error
+	Bundle(logger lager.Logger, bundleID string, layerIDs []string) (runspec.Spec, error)
+	Exists(logger lager.Logger, layerID string) bool
 }
 
-// LayerIDGenerator generates layer IDs for local rootfs tars. This interface
-// may end up disapppearing in favour of something more general when we add
-// remote OCI image support.
-//go:generate counterfeiter . LayerIDGenerator
-type LayerIDGenerator interface {
-	GenerateLayerID(localRootfsPath string) (string, error)
+// ImagePuller should be able to download and store a remote (or local) image
+// and return it's all layer information so that it can be bundled togheter by
+// the driver
+//go:generate counterfeiter . ImagePuller
+type ImagePuller interface {
+	Pull(logger lager.Logger, spec imagepuller.ImageSpec) (imagepuller.Image, error)
 }
 
 type Groot struct {
-	LayerIDGenerator LayerIDGenerator
-	Driver           Driver
-	Logger           lager.Logger
+	Driver      Driver
+	Logger      lager.Logger
+	ImagePuller ImagePuller
 }
 
 func Run(driver Driver, argv []string) {
@@ -50,7 +58,11 @@ func Run(driver Driver, argv []string) {
 		{
 			Name: "create",
 			Action: func(ctx *cli.Context) error {
-				rootfsURI := ctx.Args()[0]
+				rootfsURI, err := url.Parse(ctx.Args()[0])
+				if err != nil {
+					return err
+				}
+
 				handle := ctx.Args()[1]
 				runtimeSpec, err := g.Create(handle, rootfsURI)
 				if err != nil {
@@ -86,10 +98,21 @@ func newGroot(driver Driver, conf config) (*Groot, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	fileFetcher := filefetcher.NewFileFetcher()
+	source := source.NewLayerSource(types.SystemContext{}, false)
+	layerFetcher := layerfetcher.NewLayerFetcher(&source)
+	fetcher := fetcher.Fetcher{
+		FileFetcher:  fileFetcher,
+		LayerFetcher: layerFetcher,
+	}
+
+	imagePuller := imagepuller.NewImagePuller(&fetcher, driver)
+
 	return &Groot{
-		Driver:           driver,
-		Logger:           logger,
-		LayerIDGenerator: &LocalLayerIDGenerator{ModTimer: statModTimer{}},
+		Driver:      driver,
+		Logger:      logger,
+		ImagePuller: imagePuller,
 	}, nil
 }
 

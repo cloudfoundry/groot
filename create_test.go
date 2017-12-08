@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/url"
 	"os"
 
 	"code.cloudfoundry.org/groot"
 	"code.cloudfoundry.org/groot/grootfakes"
+	"code.cloudfoundry.org/groot/imagepuller"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	. "github.com/onsi/ginkgo"
@@ -20,34 +22,41 @@ import (
 var _ = Describe("Groot", func() {
 	var (
 		driver            *grootfakes.FakeDriver
+		imagePuller       *grootfakes.FakeImagePuller
 		driverRuntimeSpec = specs.Spec{Version: "some-version"}
 
-		layerIDGenerator *grootfakes.FakeLayerIDGenerator
-		logger           *lagertest.TestLogger
-		g                *groot.Groot
+		logger *lagertest.TestLogger
+		g      *groot.Groot
 
-		rootfsFilePath string
+		rootfsSource *url.URL
 	)
 
 	BeforeEach(func() {
 		tempFile, err := ioutil.TempFile("", "groot-unit-tests")
 		Expect(err).NotTo(HaveOccurred())
 		fmt.Fprint(tempFile, "afile")
-		rootfsFilePath = tempFile.Name()
+		rootfsSource, err = url.Parse(tempFile.Name())
+		Expect(err).NotTo(HaveOccurred())
 		Expect(tempFile.Close()).To(Succeed())
 
 		driver = new(grootfakes.FakeDriver)
 		driver.BundleReturns(driverRuntimeSpec, nil)
+		imagePuller = new(grootfakes.FakeImagePuller)
 
-		layerIDGenerator = new(grootfakes.FakeLayerIDGenerator)
-		layerIDGenerator.GenerateLayerIDReturns("checksum", nil)
+		imagePuller.PullReturns(imagepuller.Image{
+			ChainIDs: []string{"checksum"},
+		}, nil)
 
 		logger = lagertest.NewTestLogger("groot")
-		g = &groot.Groot{Driver: driver, LayerIDGenerator: layerIDGenerator, Logger: logger}
+		g = &groot.Groot{
+			Driver:      driver,
+			Logger:      logger,
+			ImagePuller: imagePuller,
+		}
 	})
 
 	AfterEach(func() {
-		Expect(os.Remove(rootfsFilePath)).To(Succeed())
+		Expect(os.Remove(rootfsSource.String())).To(Succeed())
 	})
 
 	Describe("Create succeeding", func() {
@@ -67,30 +76,14 @@ var _ = Describe("Groot", func() {
 
 		JustBeforeEach(func() {
 			var err error
-			returnedRuntimeSpec, err = g.Create("some-handle", rootfsFilePath)
+			returnedRuntimeSpec, err = g.Create("some-handle", rootfsSource)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("generates a layer ID for the local rootfs", func() {
-			Expect(layerIDGenerator.GenerateLayerIDCallCount()).To(Equal(1))
-			Expect(layerIDGenerator.GenerateLayerIDArgsForCall(0)).To(Equal(rootfsFilePath))
-		})
-
-		It("calls driver.Exists with the expected args", func() {
-			Expect(driver.ExistsCallCount()).To(Equal(1))
-			_, layerID := driver.ExistsArgsForCall(0)
-			Expect(layerID).To(Equal("checksum"))
-		})
-
-		It("calls driver.Unpack with the expected args", func() {
-			Expect(driver.UnpackCallCount()).To(Equal(1))
-			_, id, parentID, _ := driver.UnpackArgsForCall(0)
-			Expect(id).To(Equal("checksum"))
-			Expect(parentID).To(Equal(""))
-
-			tarContents, err := ioutil.ReadAll(rootfsFileBuffer)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(string(tarContents)).To(Equal("afile"))
+		It("calls the image puller with the expected args", func() {
+			Expect(imagePuller.PullCallCount()).To(Equal(1))
+			_, spec := imagePuller.PullArgsForCall(0)
+			Expect(spec.ImageSrc).To(Equal(rootfsSource))
 		})
 
 		It("returns the runtime spec from driver.Bundle", func() {
@@ -117,45 +110,20 @@ var _ = Describe("Groot", func() {
 
 	Describe("Create failing", func() {
 		var (
-			rootfsURI string
 			createErr error
 		)
 
-		BeforeEach(func() {
-			rootfsURI = rootfsFilePath
-		})
-
 		JustBeforeEach(func() {
-			_, createErr = g.Create("some-handle", rootfsURI)
+			_, createErr = g.Create("some-handle", rootfsSource)
 		})
 
-		Context("when the rootfsURI is not a file", func() {
+		Context("when image puller returns an error", func() {
 			BeforeEach(func() {
-				rootfsURI = "idontexist"
-			})
-
-			It("returns an error", func() {
-				Expect(errors.Cause(createErr)).To(BeAssignableToTypeOf(&os.PathError{}))
-			})
-		})
-
-		Context("when the layer ID generator returns an error", func() {
-			BeforeEach(func() {
-				layerIDGenerator.GenerateLayerIDReturns("", errors.New("generating-failed"))
+				imagePuller.PullReturns(imagepuller.Image{}, errors.New("pull-failed"))
 			})
 
 			It("returns the error", func() {
-				Expect(createErr).To(MatchError(ContainSubstring("generating-failed")))
-			})
-		})
-
-		Context("when driver.Unpack returns an error", func() {
-			BeforeEach(func() {
-				driver.UnpackReturns(errors.New("unpack-failed"))
-			})
-
-			It("returns the error", func() {
-				Expect(createErr).To(MatchError(ContainSubstring("unpack-failed")))
+				Expect(createErr).To(MatchError(ContainSubstring("pull-failed")))
 			})
 		})
 

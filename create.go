@@ -1,37 +1,26 @@
 package groot
 
 import (
-	"os"
+	"net/url"
 
-	specs "github.com/opencontainers/runtime-spec/specs-go"
+	"code.cloudfoundry.org/groot/imagepuller"
+	runspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 )
 
-func (g *Groot) Create(handle, rootfsURI string) (specs.Spec, error) {
+func (g *Groot) Create(handle string, rootfsURI *url.URL) (runspec.Spec, error) {
 	g.Logger = g.Logger.Session("create")
 	g.Logger.Debug("starting")
 	defer g.Logger.Debug("ending")
 
-	layerID, err := g.LayerIDGenerator.GenerateLayerID(rootfsURI)
+	image, err := g.ImagePuller.Pull(g.Logger, imagepuller.ImageSpec{ImageSrc: rootfsURI})
 	if err != nil {
-		return specs.Spec{}, errors.Wrap(err, "generating layerID")
+		return runspec.Spec{}, errors.Wrap(err, "pulling image")
 	}
 
-	rootfsFile, err := os.Open(rootfsURI)
+	bundle, err := g.Driver.Bundle(g.Logger.Session("bundle"), handle, image.ChainIDs)
 	if err != nil {
-		return specs.Spec{}, errors.Wrapf(err, "opening rootfsURI: %s", rootfsURI)
-	}
-	defer rootfsFile.Close()
-
-	if !g.Driver.Exists(g.Logger.Session("exists"), layerID) {
-		if err = g.Driver.Unpack(g.Logger.Session("unpack"), layerID, "", rootfsFile); err != nil {
-			return specs.Spec{}, errors.Wrapf(err, "unpacking layer: %s", layerID)
-		}
-	}
-
-	bundle, err := g.Driver.Bundle(g.Logger.Session("bundle"), handle, []string{layerID})
-	if err != nil {
-		return specs.Spec{}, errors.Wrap(err, "creating bundle")
+		return runspec.Spec{}, errors.Wrap(err, "creating bundle")
 	}
 
 	return bundle, nil

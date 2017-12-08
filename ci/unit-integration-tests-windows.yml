@@ -8,6 +8,10 @@ inputs:
 caches:
 - path: pkg
 
+params:
+  REGISTRY_USERNAME:
+  REGISTRY_PASSWORD:
+
 run:
   path: powershell
   args:

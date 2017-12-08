@@ -16,7 +16,6 @@ import (
 	"code.cloudfoundry.org/groot/integration/cmd/toot/toot"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	specs "github.com/opencontainers/runtime-spec/specs-go"
 )
 
 var _ = Describe("groot", func() {
@@ -72,40 +71,26 @@ var _ = Describe("groot", func() {
 			return tootCmd.Run()
 		}
 
-		Describe("success", func() {
-			JustBeforeEach(func() {
-				if configFilePath != "" {
-					configYml := fmt.Sprintf(`log_level: %s`, logLevel)
-					Expect(ioutil.WriteFile(configFilePath, []byte(configYml), 0600)).To(Succeed())
-				}
-
-				Expect(ioutil.WriteFile(rootfsURI, []byte("a-rootfs"), 0600)).To(Succeed())
-
-				Expect(runTootCmd()).To(Succeed())
-			})
-
-			It("prints a runtime spec to stdout", func() {
-				var runtimeSpec specs.Spec
-				Expect(json.Unmarshal(stdout.Bytes(), &runtimeSpec)).To(Succeed())
-				Expect(runtimeSpec).To(Equal(toot.BundleRuntimeSpec))
-			})
-
+		whenCreationSucceeds := func() {
 			It("calls driver.Unpack() with the expected args", func() {
-				var args toot.UnpackArgs
+				var args toot.UnpackCalls
 				readTestArgsFile(toot.UnpackArgsFileName, &args)
-				Expect(args.ID).NotTo(BeEmpty())
-				Expect(args.ParentID).To(BeEmpty())
-				Expect(string(args.LayerTarContents)).To(Equal("a-rootfs"))
+				Expect(args[0].ID).NotTo(BeEmpty())
+				Expect(args[0].ParentID).To(BeEmpty())
 			})
 
 			It("calls driver.Bundle() with expected args", func() {
-				var unpackArgs toot.UnpackArgs
+				var unpackArgs toot.UnpackCalls
 				readTestArgsFile(toot.UnpackArgsFileName, &unpackArgs)
 
-				var bundleArgs toot.BundleArgs
+				var bundleArgs toot.BundleCalls
 				readTestArgsFile(toot.BundleArgsFileName, &bundleArgs)
-				Expect(bundleArgs.ID).To(Equal(handle))
-				Expect(bundleArgs.LayerIDs).To(ConsistOf(unpackArgs.ID))
+				unpackLayerIds := []string{}
+				for _, call := range unpackArgs {
+					unpackLayerIds = append(unpackLayerIds, call.ID)
+				}
+				Expect(bundleArgs[0].ID).To(Equal(handle))
+				Expect(bundleArgs[0].LayerIDs).To(ConsistOf(unpackLayerIds))
 			})
 
 			It("logs to stderr with an appropriate lager session, defaulting to info level", func() {
@@ -118,7 +103,7 @@ var _ = Describe("groot", func() {
 					configFilePath = ""
 				})
 
-				It("uses the default log leval", func() {
+				It("uses the default log level", func() {
 					Expect(stderr.String()).ToNot(ContainSubstring("bundle-debug"))
 					Expect(stderr.String()).To(ContainSubstring("bundle-info"))
 				})
@@ -137,66 +122,43 @@ var _ = Describe("groot", func() {
 			Describe("subsequent invocations", func() {
 				Context("when the rootfs file has not changed", func() {
 					It("generates the same layer ID", func() {
-						var unpackArgs toot.UnpackArgs
+						var unpackArgs toot.UnpackCalls
 						readTestArgsFile(toot.UnpackArgsFileName, &unpackArgs)
-						firstInvocationLayerID := unpackArgs.ID
+						firstInvocationLayerID := unpackArgs[0].ID
 
 						Expect(runTootCmd()).To(Succeed())
 
 						readTestArgsFile(toot.UnpackArgsFileName, &unpackArgs)
-						secondInvocationLayerID := unpackArgs.ID
+						secondInvocationLayerID := unpackArgs[0].ID
 
 						Expect(secondInvocationLayerID).To(Equal(firstInvocationLayerID))
-					})
-				})
-
-				Context("when the rootfs file timestamp has changed", func() {
-					It("generates a different layer ID", func() {
-						var unpackArgs toot.UnpackArgs
-						readTestArgsFile(toot.UnpackArgsFileName, &unpackArgs)
-						firstInvocationLayerID := unpackArgs.ID
-
-						rootfsFileModTime := func() int64 {
-							rootfsFileInfo, err := os.Stat(rootfsURI)
-							Expect(err).NotTo(HaveOccurred())
-							return rootfsFileInfo.ModTime().UnixNano()
-						}
-						initialRootfsFileMtime := rootfsFileModTime()
-
-						Eventually(func() int64 {
-							now := time.Now()
-							Expect(os.Chtimes(rootfsURI, now, now)).To(Succeed())
-							return rootfsFileModTime()
-						}, time.Second*20, time.Millisecond*50).ShouldNot(Equal(initialRootfsFileMtime))
-
-						Expect(runTootCmd()).To(Succeed())
-
-						readTestArgsFile(toot.UnpackArgsFileName, &unpackArgs)
-						secondInvocationLayerID := unpackArgs.ID
-
-						Expect(secondInvocationLayerID).NotTo(Equal(firstInvocationLayerID))
 					})
 				})
 			})
 
 			Describe("layer caching", func() {
 				It("calls exists", func() {
-					var existsArgs toot.ExistsArgs
+					var existsArgs toot.ExistsCalls
 					readTestArgsFile(toot.ExistsArgsFileName, &existsArgs)
-					Expect(existsArgs.LayerID).ToNot(BeEmpty())
+					Expect(existsArgs[0].LayerID).ToNot(BeEmpty())
 				})
 
 				Context("when the layer is not cached", func() {
 					It("calls unpack with the same layerID", func() {
-						var existsArgs toot.ExistsArgs
+						var existsArgs toot.ExistsCalls
 						readTestArgsFile(toot.ExistsArgsFileName, &existsArgs)
-						Expect(existsArgs.LayerID).ToNot(BeEmpty())
+						Expect(existsArgs[0].LayerID).ToNot(BeEmpty())
 
 						Expect(argFilePath(toot.UnpackArgsFileName)).To(BeAnExistingFile())
 
-						var unpackArgs toot.UnpackArgs
+						var unpackArgs toot.UnpackCalls
 						readTestArgsFile(toot.UnpackArgsFileName, &unpackArgs)
-						Expect(unpackArgs.ID).To(Equal(existsArgs.LayerID))
+						Expect(len(unpackArgs)).To(Equal(len(existsArgs)))
+
+						lastCall := len(unpackArgs) - 1
+						for i := range unpackArgs {
+							Expect(unpackArgs[i].ID).To(Equal(existsArgs[lastCall-i].LayerID))
+						}
 					})
 				})
 
@@ -210,17 +172,13 @@ var _ = Describe("groot", func() {
 					})
 				})
 			})
-		})
+		}
 
-		Describe("failure", func() {
-			var (
-				writeConfigFile bool
-				createRootfsTar bool
-			)
+		whenCreationFails := func() {
+			var writeConfigFile bool
 
 			BeforeEach(func() {
 				writeConfigFile = true
-				createRootfsTar = true
 			})
 
 			JustBeforeEach(func() {
@@ -229,16 +187,13 @@ var _ = Describe("groot", func() {
 					Expect(ioutil.WriteFile(configFilePath, []byte(configYml), 0600)).To(Succeed())
 				}
 
-				if createRootfsTar {
-					Expect(ioutil.WriteFile(rootfsURI, []byte("a-rootfs"), 0600)).To(Succeed())
-				}
-
 				tootArgv := []string{"--config", configFilePath, "create", rootfsURI, handle}
 				tootCmd := exec.Command(tootBinPath, tootArgv...)
 				tootCmd.Stdout = io.MultiWriter(stdout, GinkgoWriter)
 				tootCmd.Stderr = io.MultiWriter(stderr, GinkgoWriter)
 				tootCmd.Env = append(os.Environ(), env...)
 				exitErr := tootCmd.Run()
+				Expect(exitErr).To(HaveOccurred())
 				Expect(exitErr.(*exec.ExitError).Sys().(syscall.WaitStatus).ExitStatus()).To(Equal(1))
 			})
 
@@ -259,16 +214,6 @@ var _ = Describe("groot", func() {
 
 				It("prints the error", func() {
 					Expect(stdout.String()).To(ContainSubstring("unpack-err\n"))
-				})
-			})
-
-			Context("when the rootfs URI is not a file", func() {
-				BeforeEach(func() {
-					createRootfsTar = false
-				})
-
-				It("prints an error", func() {
-					Expect(stdout.String()).To(ContainSubstring(notFoundRuntimeError[runtime.GOOS]))
 				})
 			})
 
@@ -302,6 +247,98 @@ var _ = Describe("groot", func() {
 					Expect(stdout.String()).To(ContainSubstring("lol"))
 				})
 			})
+		}
+
+		Describe("success", func() {
+			JustBeforeEach(func() {
+				if configFilePath != "" {
+					configYml := fmt.Sprintf(`log_level: %s`, logLevel)
+					Expect(ioutil.WriteFile(configFilePath, []byte(configYml), 0600)).To(Succeed())
+				}
+			})
+
+			Describe("Local images", func() {
+				JustBeforeEach(func() {
+					Expect(ioutil.WriteFile(rootfsURI, []byte("a-rootfs"), 0600)).To(Succeed())
+
+					Expect(runTootCmd()).To(Succeed())
+				})
+
+				whenCreationSucceeds()
+
+				It("calls driver.Unpack() with the correct stream", func() {
+					var args toot.UnpackCalls
+					readTestArgsFile(toot.UnpackArgsFileName, &args)
+					Expect(string(args[0].LayerTarContents)).To(Equal("a-rootfs"))
+				})
+
+				Describe("subsequent invocations", func() {
+					Context("when the rootfs file timestamp has changed", func() {
+						It("generates a different layer ID", func() {
+							var unpackArgs toot.UnpackCalls
+							readTestArgsFile(toot.UnpackArgsFileName, &unpackArgs)
+							firstInvocationLayerID := unpackArgs[0].ID
+
+							now := time.Now()
+							Expect(os.Chtimes(rootfsURI, now.Add(time.Hour), now.Add(time.Hour))).To(Succeed())
+
+							Expect(runTootCmd()).To(Succeed())
+
+							readTestArgsFile(toot.UnpackArgsFileName, &unpackArgs)
+							secondInvocationLayerID := unpackArgs[1].ID
+
+							Expect(secondInvocationLayerID).NotTo(Equal(firstInvocationLayerID))
+						})
+					})
+				})
+			})
+
+			Describe("Remote images", func() {
+				JustBeforeEach(func() {
+					rootfsURI = "docker:///cfgarden/three-layers"
+
+					Expect(runTootCmd()).To(Succeed())
+				})
+
+				whenCreationSucceeds()
+			})
+		})
+
+		Describe("failure", func() {
+			Describe("Local Images", func() {
+				var createRootfsTar bool
+
+				BeforeEach(func() {
+					createRootfsTar = true
+				})
+
+				JustBeforeEach(func() {
+					if createRootfsTar {
+						Expect(ioutil.WriteFile(rootfsURI, []byte("a-rootfs"), 0600)).To(Succeed())
+					}
+				})
+
+				whenCreationFails()
+
+				Context("when the rootfs URI is not a file", func() {
+					BeforeEach(func() {
+						createRootfsTar = false
+					})
+
+					It("prints an error", func() {
+						Expect(stdout.String()).To(ContainSubstring(notFoundRuntimeError[runtime.GOOS]))
+					})
+				})
+			})
+
+			Describe("Remote Images", func() {
+				BeforeEach(func() {
+					rootfsURI = "docker:///cfgarden/three-layers"
+				})
+
+				whenCreationFails()
+			})
+
 		})
 	})
 })

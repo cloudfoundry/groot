@@ -15,6 +15,7 @@ push-location "src\code.cloudfoundry.org\groot"
   }
 pop-location
 
+go get github.com/golang/protobuf
 Write-Host "Installing Ginkgo"
 go install ./src/github.com/onsi/ginkgo/ginkgo
 if ($LastExitCode -ne 0) {
