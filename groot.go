@@ -27,7 +27,7 @@ type Driver interface {
 }
 
 // ImagePuller should be able to download and store a remote (or local) image
-// and return it's all layer information so that it can be bundled togheter by
+// and return all its layer information so that it can be bundled together by
 // the driver
 //go:generate counterfeiter . ImagePuller
 type ImagePuller interface {
