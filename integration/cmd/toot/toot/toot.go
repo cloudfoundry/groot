@@ -46,9 +46,23 @@ func (t *Toot) Bundle(logger lager.Logger, id string, layerIDs []string) (specs.
 	return BundleRuntimeSpec, nil
 }
 
+func (t *Toot) Delete(logger lager.Logger, id string) error {
+	logger.Info("delete-info")
+	logger.Debug("delete-debug")
+
+	if _, exists := os.LookupEnv("TOOT_DELETE_ERROR"); exists {
+		return errors.New("delete-err")
+	}
+
+	saveObject([]interface{}{
+		DeleteArgs{BundleID: id},
+	}, t.pathTo(DeleteArgsFileName))
+	return nil
+}
+
 func (t *Toot) Exists(logger lager.Logger, layerID string) bool {
-	logger.Info("bundle-info")
-	logger.Debug("bundle-debug")
+	logger.Info("exists-info")
+	logger.Debug("exists-debug")
 
 	if _, exists := os.LookupEnv("TOOT_LAYER_EXISTS"); exists {
 		return true
@@ -65,6 +79,7 @@ const (
 	UnpackArgsFileName = "unpack-args"
 	BundleArgsFileName = "bundle-args"
 	ExistsArgsFileName = "exists-args"
+	DeleteArgsFileName = "delete-args"
 )
 
 var (
@@ -74,6 +89,11 @@ var (
 type ExistsCalls []ExistsArgs
 type ExistsArgs struct {
 	LayerID string
+}
+
+type DeleteCalls []DeleteArgs
+type DeleteArgs struct {
+	BundleID string
 }
 
 type UnpackCalls []UnpackArgs

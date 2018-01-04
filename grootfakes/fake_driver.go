@@ -52,6 +52,18 @@ type FakeDriver struct {
 	existsReturnsOnCall map[int]struct {
 		result1 bool
 	}
+	DeleteStub        func(logger lager.Logger, bundleID string) error
+	deleteMutex       sync.RWMutex
+	deleteArgsForCall []struct {
+		logger   lager.Logger
+		bundleID string
+	}
+	deleteReturns struct {
+		result1 error
+	}
+	deleteReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -214,6 +226,55 @@ func (fake *FakeDriver) ExistsReturnsOnCall(i int, result1 bool) {
 	}{result1}
 }
 
+func (fake *FakeDriver) Delete(logger lager.Logger, bundleID string) error {
+	fake.deleteMutex.Lock()
+	ret, specificReturn := fake.deleteReturnsOnCall[len(fake.deleteArgsForCall)]
+	fake.deleteArgsForCall = append(fake.deleteArgsForCall, struct {
+		logger   lager.Logger
+		bundleID string
+	}{logger, bundleID})
+	fake.recordInvocation("Delete", []interface{}{logger, bundleID})
+	fake.deleteMutex.Unlock()
+	if fake.DeleteStub != nil {
+		return fake.DeleteStub(logger, bundleID)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.deleteReturns.result1
+}
+
+func (fake *FakeDriver) DeleteCallCount() int {
+	fake.deleteMutex.RLock()
+	defer fake.deleteMutex.RUnlock()
+	return len(fake.deleteArgsForCall)
+}
+
+func (fake *FakeDriver) DeleteArgsForCall(i int) (lager.Logger, string) {
+	fake.deleteMutex.RLock()
+	defer fake.deleteMutex.RUnlock()
+	return fake.deleteArgsForCall[i].logger, fake.deleteArgsForCall[i].bundleID
+}
+
+func (fake *FakeDriver) DeleteReturns(result1 error) {
+	fake.DeleteStub = nil
+	fake.deleteReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeDriver) DeleteReturnsOnCall(i int, result1 error) {
+	fake.DeleteStub = nil
+	if fake.deleteReturnsOnCall == nil {
+		fake.deleteReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.deleteReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeDriver) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -223,6 +284,8 @@ func (fake *FakeDriver) Invocations() map[string][][]interface{} {
 	defer fake.bundleMutex.RUnlock()
 	fake.existsMutex.RLock()
 	defer fake.existsMutex.RUnlock()
+	fake.deleteMutex.RLock()
+	defer fake.deleteMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

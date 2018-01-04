@@ -19,7 +19,7 @@ import (
 	errors "github.com/pkg/errors"
 )
 
-var _ = Describe("Groot", func() {
+var _ = Describe("Create", func() {
 	var (
 		driver            *grootfakes.FakeDriver
 		imagePuller       *grootfakes.FakeImagePuller

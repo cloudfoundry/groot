@@ -24,6 +24,7 @@ type Driver interface {
 	Unpack(logger lager.Logger, layerID, parentID string, layerTar io.Reader) error
 	Bundle(logger lager.Logger, bundleID string, layerIDs []string) (runspec.Spec, error)
 	Exists(logger lager.Logger, layerID string) bool
+	Delete(logger lager.Logger, bundleID string) error
 }
 
 // ImagePuller should be able to download and store a remote (or local) image
@@ -70,6 +71,18 @@ func Run(driver Driver, argv []string) {
 				}
 
 				return json.NewEncoder(os.Stdout).Encode(runtimeSpec)
+			},
+		},
+		{
+			Name: "delete",
+			Action: func(ctx *cli.Context) error {
+				handle := ctx.Args()[0]
+				err := g.Delete(handle)
+				if err != nil {
+					return err
+				}
+
+				return nil
 			},
 		},
 	}
