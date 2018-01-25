@@ -52,7 +52,6 @@ var _ = Describe("Layer source: OCI", func() {
 		workDir, err = os.Getwd()
 		Expect(err).NotTo(HaveOccurred())
 		imageURL = urlParse(fmt.Sprintf("oci:///%s/../../../integration/oci-test-images/opq-whiteouts-busybox:latest", workDir))
-		Expect(err).NotTo(HaveOccurred())
 	})
 
 	JustBeforeEach(func() {
