@@ -51,7 +51,7 @@ var _ = Describe("Layer source: OCI", func() {
 		var err error
 		workDir, err = os.Getwd()
 		Expect(err).NotTo(HaveOccurred())
-		imageURL, err = url.Parse(fmt.Sprintf("oci:///%s/../../../integration/oci-test-images/opq-whiteouts-busybox:latest", workDir))
+		imageURL = urlParse(fmt.Sprintf("oci:///%s/../../../integration/oci-test-images/opq-whiteouts-busybox:latest", workDir))
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -87,19 +87,16 @@ var _ = Describe("Layer source: OCI", func() {
 
 		Context("when the image url is invalid", func() {
 			It("returns an error", func() {
-				imageURL, err := url.Parse("oci://///cfgarden/empty:v0.1.0")
-				Expect(err).NotTo(HaveOccurred())
+				imageURL = urlParse("oci://///cfgarden/empty:v0.1.0")
 
-				_, err = layerSource.Manifest(logger, imageURL)
+				_, err := layerSource.Manifest(logger, imageURL)
 				Expect(err).To(MatchError(ContainSubstring("parsing url failed")))
 			})
 		})
 
 		Context("when the image does not exist", func() {
 			BeforeEach(func() {
-				var err error
-				imageURL, err = url.Parse("oci:///cfgarden/non-existing-image")
-				Expect(err).NotTo(HaveOccurred())
+				imageURL = urlParse("oci:///cfgarden/non-existing-image")
 			})
 
 			It("wraps the containers/image with a useful error", func() {
@@ -110,9 +107,7 @@ var _ = Describe("Layer source: OCI", func() {
 
 		Context("when the config blob does not exist", func() {
 			BeforeEach(func() {
-				var err error
-				imageURL, err = url.Parse(fmt.Sprintf("oci:///%s/../../../integration/oci-test-images/invalid-config:latest", workDir))
-				Expect(err).NotTo(HaveOccurred())
+				imageURL = urlParse(fmt.Sprintf("oci:///%s/../../../integration/oci-test-images/invalid-config:latest", workDir))
 			})
 
 			It("retuns an error", func() {
@@ -130,6 +125,7 @@ var _ = Describe("Layer source: OCI", func() {
 
 			blobReader, err := os.Open(blobPath)
 			Expect(err).NotTo(HaveOccurred())
+			defer blobReader.Close()
 
 			entries := tarEntries(blobReader)
 			Expect(entries).To(ContainElement("etc/localtime"))
@@ -144,9 +140,7 @@ var _ = Describe("Layer source: OCI", func() {
 
 		Context("when the blob is corrupted", func() {
 			BeforeEach(func() {
-				var err error
-				imageURL, err = url.Parse(fmt.Sprintf("oci:///%s/../../../integration/oci-test-images/corrupted:latest", workDir))
-				Expect(err).NotTo(HaveOccurred())
+				imageURL = urlParse(fmt.Sprintf("oci:///%s/../../../integration/oci-test-images/corrupted:latest", workDir))
 			})
 
 			It("returns an error", func() {
@@ -157,9 +151,7 @@ var _ = Describe("Layer source: OCI", func() {
 
 		Context("when skipOCIChecksumValidation is set to true", func() {
 			BeforeEach(func() {
-				var err error
-				imageURL, err = url.Parse(fmt.Sprintf("oci:///%s/../../../integration/oci-test-images/corrupted:latest", workDir))
-				Expect(err).NotTo(HaveOccurred())
+				imageURL = urlParse(fmt.Sprintf("oci:///%s/../../../integration/oci-test-images/corrupted:latest", workDir))
 				skipOCIChecksumValidation = true
 			})
 
@@ -181,3 +173,9 @@ var _ = Describe("Layer source: OCI", func() {
 		})
 	})
 })
+
+func urlParse(urlString string) *url.URL {
+	parsedURL, err := url.Parse(urlString)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+	return parsedURL
+}
