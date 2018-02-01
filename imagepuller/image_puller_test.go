@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/url"
+	"os"
 
 	"code.cloudfoundry.org/groot/imagepuller"
 	"code.cloudfoundry.org/groot/imagepuller/imagepullerfakes"
@@ -63,6 +64,10 @@ var _ = Describe("Image Puller", func() {
 
 		imageSrcURL, err = url.Parse("docker:///an/image")
 		Expect(err).NotTo(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		Expect(os.RemoveAll(tmpVolumesDir)).To(Succeed())
 	})
 
 	It("returns the image description", func() {
