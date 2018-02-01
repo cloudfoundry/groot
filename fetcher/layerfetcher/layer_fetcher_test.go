@@ -6,7 +6,6 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/url"
-	"os"
 	"time"
 
 	"code.cloudfoundry.org/groot/imagepuller"
@@ -158,26 +157,17 @@ var _ = Describe("LayerFetcher", func() {
 	})
 
 	Describe("StreamBlob", func() {
-		var (
-			layerInfo = imagepuller.LayerInfo{
-				BlobID: "sha256:layer-digest",
-			}
-			tmpFile *os.File
-		)
-
+		var layerInfo = imagepuller.LayerInfo{
+			BlobID: "sha256:layer-digest",
+		}
 		BeforeEach(func() {
-			var err error
-			tmpFile, err = ioutil.TempFile("", "")
+			tmpFile, err := ioutil.TempFile("", "")
 			Expect(err).NotTo(HaveOccurred())
 			_, err = tmpFile.Write(gzipedBlobContent)
 			Expect(err).NotTo(HaveOccurred())
-			defer tmpFile.Close()
+			defer func() { _ = tmpFile.Close() }()
 
 			fakeSource.BlobReturns(tmpFile.Name(), 0, nil)
-		})
-
-		AfterEach(func() {
-			Expect(os.Remove(tmpFile.Name())).To(Succeed())
 		})
 
 		It("uses the source", func() {
@@ -206,10 +196,7 @@ var _ = Describe("LayerFetcher", func() {
 		It("returns the size of the stream", func() {
 			tmpFile, err := ioutil.TempFile("", "")
 			Expect(err).NotTo(HaveOccurred())
-			defer func() {
-				tmpFile.Close()
-				Expect(os.Remove(tmpFile.Name())).To(Succeed())
-			}()
+			defer func() { _ = tmpFile.Close() }()
 
 			gzipWriter := gzip.NewWriter(tmpFile)
 			Expect(gzipWriter.Close()).To(Succeed())

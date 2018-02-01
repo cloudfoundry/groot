@@ -117,31 +117,10 @@ var _ = Describe("Layer source: OCI", func() {
 	})
 
 	Describe("Blob", func() {
-		var (
-			layerInfo imagepuller.LayerInfo
-
-			blobPath string
-			blobSize int64
-			blobErr  error
-		)
-
-		BeforeEach(func() {
-			layerInfo = layerInfos[0]
-		})
-
-		JustBeforeEach(func() {
-			blobPath, blobSize, blobErr = layerSource.Blob(logger, imageURL, layerInfo)
-		})
-
-		AfterEach(func() {
-			if _, err := os.Stat(blobPath); err == nil {
-				Expect(os.Remove(blobPath)).To(Succeed())
-			}
-		})
-
 		It("downloads a blob", func() {
-			Expect(blobErr).NotTo(HaveOccurred())
-			Expect(blobSize).To(Equal(int64(668151)))
+			blobPath, size, err := layerSource.Blob(logger, imageURL, layerInfos[0])
+			Expect(err).NotTo(HaveOccurred())
+			Expect(size).To(Equal(int64(668151)))
 
 			blobReader, err := os.Open(blobPath)
 			Expect(err).NotTo(HaveOccurred())
@@ -152,12 +131,9 @@ var _ = Describe("Layer source: OCI", func() {
 		})
 
 		Context("when the blob has an invalid checksum", func() {
-			BeforeEach(func() {
-				layerInfo = imagepuller.LayerInfo{BlobID: "sha256:steamed-blob"}
-			})
-
 			It("returns an error", func() {
-				Expect(blobErr).To(MatchError(ContainSubstring("invalid checksum digest length")))
+				_, _, err := layerSource.Blob(logger, imageURL, imagepuller.LayerInfo{BlobID: "sha256:steamed-blob"})
+				Expect(err).To(MatchError(ContainSubstring("invalid checksum digest length")))
 			})
 		})
 
@@ -167,7 +143,8 @@ var _ = Describe("Layer source: OCI", func() {
 			})
 
 			It("returns an error", func() {
-				Expect(blobErr).To(MatchError(ContainSubstring("layerID digest mismatch")))
+				_, _, err := layerSource.Blob(logger, imageURL, layerInfos[0])
+				Expect(err).To(MatchError(ContainSubstring("layerID digest mismatch")))
 			})
 		})
 
@@ -178,17 +155,19 @@ var _ = Describe("Layer source: OCI", func() {
 			})
 
 			It("does not validate against checksums and does not return an error", func() {
-				Expect(blobErr).NotTo(HaveOccurred())
+				_, _, err := layerSource.Blob(logger, imageURL, layerInfos[0])
+				Expect(err).NotTo(HaveOccurred())
 			})
 		})
 
 		Context("when the blob doesn't match the diffID", func() {
 			BeforeEach(func() {
-				layerInfo.DiffID = "0000000000000000000000000000000000000000000000000000000000000000"
+				layerInfos[0].DiffID = "0000000000000000000000000000000000000000000000000000000000000000"
 			})
 
 			It("returns an error", func() {
-				Expect(blobErr).To(MatchError(ContainSubstring("diffID digest mismatch")))
+				_, _, err := layerSource.Blob(logger, imageURL, layerInfos[0])
+				Expect(err).To(MatchError(ContainSubstring("diffID digest mismatch")))
 			})
 		})
 	})
