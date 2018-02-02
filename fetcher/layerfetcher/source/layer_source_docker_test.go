@@ -294,11 +294,12 @@ var _ = Describe("Layer source: Docker", func() {
 		It("retries fetching a blob twice", func() {
 			fakeRegistry.FailNextRequests(2)
 
-			_, _, err := layerSource.Blob(logger, imageURL, layerInfos[0])
+			blobPath, _, err := layerSource.Blob(logger, imageURL, layerInfos[0])
 			Expect(err).NotTo(HaveOccurred())
+			Expect(os.Remove(blobPath)).To(Succeed())
 
-			Expect(logger.TestSink.LogMessages()).To(
-				ContainElement("test-layer-source.streaming-blob.attempt-get-blob-failed"))
+			expectedMessage := "test-layer-source.streaming-blob.attempt-get-blob-failed"
+			Expect(logger.TestSink.LogMessages()).To(ContainElement(expectedMessage))
 		})
 
 		It("retries fetching the config blob twice", func() {

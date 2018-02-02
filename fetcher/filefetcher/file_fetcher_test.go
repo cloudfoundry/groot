@@ -32,9 +32,7 @@ var _ = Describe("File Fetcher", func() {
 	BeforeEach(func() {
 		fetcher = filefetcher.NewFileFetcher()
 
-		var err error
-		sourceImagePath, err = ioutil.TempDir("", "image")
-		Expect(err).NotTo(HaveOccurred())
+		sourceImagePath = tempDir()
 		Expect(ioutil.WriteFile(path.Join(sourceImagePath, "a_file"), []byte("hello-world"), 0600)).To(Succeed())
 		logger = lagertest.NewTestLogger("file-fetcher")
 	})
@@ -64,11 +62,11 @@ var _ = Describe("File Fetcher", func() {
 
 		Context("when the source is a directory", func() {
 			It("returns an error message", func() {
-				tempDir, err := ioutil.TempDir("", "")
-				Expect(err).NotTo(HaveOccurred())
+				tempDir := tempDir()
+				defer os.RemoveAll(tempDir)
 
 				imageURL, _ := url.Parse(tempDir)
-				_, _, err = fetcher.StreamBlob(logger, imageURL, imagepuller.LayerInfo{})
+				_, _, err := fetcher.StreamBlob(logger, imageURL, imagepuller.LayerInfo{})
 				Expect(err).To(MatchError(ContainSubstring("invalid base image: directory provided instead of a tar file")))
 			})
 		})
@@ -129,6 +127,12 @@ var _ = Describe("File Fetcher", func() {
 		})
 	})
 })
+
+func tempDir() string {
+	dir, err := ioutil.TempDir("", "")
+	Expect(err).NotTo(HaveOccurred())
+	return dir
+}
 
 type tarEntry struct {
 	header   *tar.Header
