@@ -8,14 +8,14 @@ import (
 	"testing"
 )
 
-var tootBinPath string
+var footBinPath string
 
 var _ = SynchronizedBeforeSuite(func() []byte {
-	binPath, err := gexec.Build("code.cloudfoundry.org/groot/integration/cmd/toot")
+	binPath, err := gexec.Build("code.cloudfoundry.org/groot/integration/cmd/foot")
 	Expect(err).NotTo(HaveOccurred())
 	return []byte(binPath)
-}, func(tootBinPathBytes []byte) {
-	tootBinPath = string(tootBinPathBytes)
+}, func(footBinPathBytes []byte) {
+	footBinPath = string(footBinPathBytes)
 })
 
 var _ = SynchronizedAfterSuite(func() {}, func() {

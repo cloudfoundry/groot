@@ -9,7 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"code.cloudfoundry.org/groot/integration/cmd/toot/toot"
+	"code.cloudfoundry.org/groot/integration/cmd/foot/foot"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -38,7 +38,7 @@ var _ = Describe("groot", func() {
 			tempDir, err = ioutil.TempDir("", "groot-integration-tests")
 			Expect(err).NotTo(HaveOccurred())
 
-			env = []string{"TOOT_BASE_DIR=" + tempDir}
+			env = []string{"FOOT_BASE_DIR=" + tempDir}
 			stdout = new(bytes.Buffer)
 		})
 
@@ -46,28 +46,28 @@ var _ = Describe("groot", func() {
 			Expect(os.RemoveAll(tempDir)).To(Succeed())
 		})
 
-		runTootCmd := func() error {
-			tootArgv := []string{"delete", handle}
-			tootCmd := exec.Command(tootBinPath, tootArgv...)
-			tootCmd.Stdout = io.MultiWriter(stdout, GinkgoWriter)
-			tootCmd.Env = append(os.Environ(), env...)
-			return tootCmd.Run()
+		runFootCmd := func() error {
+			footArgv := []string{"delete", handle}
+			footCmd := exec.Command(footBinPath, footArgv...)
+			footCmd.Stdout = io.MultiWriter(stdout, GinkgoWriter)
+			footCmd.Env = append(os.Environ(), env...)
+			return footCmd.Run()
 		}
 
 		It("calls driver.Delete() with the expected args", func() {
-			Expect(runTootCmd()).To(Succeed())
-			var args toot.DeleteCalls
-			readTestArgsFile(toot.DeleteArgsFileName, &args)
+			Expect(runFootCmd()).To(Succeed())
+			var args foot.DeleteCalls
+			readTestArgsFile(foot.DeleteArgsFileName, &args)
 			Expect(args[0].BundleID).NotTo(BeEmpty())
 		})
 
 		Context("when the driver returns an error", func() {
 			BeforeEach(func() {
-				env = append(env, "TOOT_DELETE_ERROR=true")
+				env = append(env, "FOOT_BUNDLE_ERROR=true")
 			})
 
 			It("fails", func() {
-				_ = runTootCmd()
+				_ = runFootCmd()
 				Expect(stdout.String()).To(ContainSubstring("delete-err\n"))
 			})
 		})

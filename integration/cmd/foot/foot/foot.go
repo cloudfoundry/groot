@@ -1,4 +1,4 @@
-package toot
+package foot
 
 import (
 	"encoding/json"
@@ -12,15 +12,15 @@ import (
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 )
 
-type Toot struct {
+type Foot struct {
 	BaseDir string
 }
 
-func (t *Toot) Unpack(logger lager.Logger, id string, parentIDs []string, layerTar io.Reader) error {
+func (t *Foot) Unpack(logger lager.Logger, id string, parentIDs []string, layerTar io.Reader) error {
 	logger.Info("unpack-info")
 	logger.Debug("unpack-debug")
 
-	if _, exists := os.LookupEnv("TOOT_UNPACK_ERROR"); exists {
+	if _, exists := os.LookupEnv("FOOT_UNPACK_ERROR"); exists {
 		return errors.New("unpack-err")
 	}
 
@@ -32,11 +32,11 @@ func (t *Toot) Unpack(logger lager.Logger, id string, parentIDs []string, layerT
 	return nil
 }
 
-func (t *Toot) Bundle(logger lager.Logger, id string, layerIDs []string) (specs.Spec, error) {
+func (t *Foot) Bundle(logger lager.Logger, id string, layerIDs []string) (specs.Spec, error) {
 	logger.Info("bundle-info")
 	logger.Debug("bundle-debug")
 
-	if _, exists := os.LookupEnv("TOOT_BUNDLE_ERROR"); exists {
+	if _, exists := os.LookupEnv("FOOT_BUNDLE_ERROR"); exists {
 		return specs.Spec{}, errors.New("bundle-err")
 	}
 
@@ -46,11 +46,11 @@ func (t *Toot) Bundle(logger lager.Logger, id string, layerIDs []string) (specs.
 	return BundleRuntimeSpec, nil
 }
 
-func (t *Toot) Delete(logger lager.Logger, id string) error {
+func (t *Foot) Delete(logger lager.Logger, id string) error {
 	logger.Info("delete-info")
 	logger.Debug("delete-debug")
 
-	if _, exists := os.LookupEnv("TOOT_DELETE_ERROR"); exists {
+	if _, exists := os.LookupEnv("FOOT_BUNDLE_ERROR"); exists {
 		return errors.New("delete-err")
 	}
 
@@ -60,11 +60,11 @@ func (t *Toot) Delete(logger lager.Logger, id string) error {
 	return nil
 }
 
-func (t *Toot) Exists(logger lager.Logger, layerID string) bool {
+func (t *Foot) Exists(logger lager.Logger, layerID string) bool {
 	logger.Info("exists-info")
 	logger.Debug("exists-debug")
 
-	if _, exists := os.LookupEnv("TOOT_LAYER_EXISTS"); exists {
+	if _, exists := os.LookupEnv("FOOT_LAYER_EXISTS"); exists {
 		return true
 	}
 
@@ -83,7 +83,7 @@ const (
 )
 
 var (
-	BundleRuntimeSpec = specs.Spec{Root: &specs.Root{Path: "toot-rootfs-path"}}
+	BundleRuntimeSpec = specs.Spec{Root: &specs.Root{Path: "foot-rootfs-path"}}
 )
 
 type ExistsCalls []ExistsArgs
@@ -109,7 +109,7 @@ type BundleArgs struct {
 	LayerIDs []string
 }
 
-func (t *Toot) pathTo(filename string) string {
+func (t *Foot) pathTo(filename string) string {
 	return filepath.Join(t.BaseDir, filename)
 }
 

@@ -13,7 +13,7 @@ import (
 	"syscall"
 	"time"
 
-	"code.cloudfoundry.org/groot/integration/cmd/toot/toot"
+	"code.cloudfoundry.org/groot/integration/cmd/foot/foot"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -53,7 +53,7 @@ var _ = Describe("groot", func() {
 			rootfsURI = filepath.Join(tempDir, "rootfs.tar")
 
 			logLevel = ""
-			env = []string{"TOOT_BASE_DIR=" + tempDir}
+			env = []string{"FOOT_BASE_DIR=" + tempDir}
 			stdout = new(bytes.Buffer)
 			stderr = new(bytes.Buffer)
 		})
@@ -62,29 +62,29 @@ var _ = Describe("groot", func() {
 			Expect(os.RemoveAll(tempDir)).To(Succeed())
 		})
 
-		runTootCmd := func() error {
-			tootArgv := []string{"--config", configFilePath, "create", rootfsURI, handle}
-			tootCmd := exec.Command(tootBinPath, tootArgv...)
-			tootCmd.Stdout = io.MultiWriter(stdout, GinkgoWriter)
-			tootCmd.Stderr = io.MultiWriter(stderr, GinkgoWriter)
-			tootCmd.Env = append(os.Environ(), env...)
-			return tootCmd.Run()
+		runFootCmd := func() error {
+			footArgv := []string{"--config", configFilePath, "create", rootfsURI, handle}
+			footCmd := exec.Command(footBinPath, footArgv...)
+			footCmd.Stdout = io.MultiWriter(stdout, GinkgoWriter)
+			footCmd.Stderr = io.MultiWriter(stderr, GinkgoWriter)
+			footCmd.Env = append(os.Environ(), env...)
+			return footCmd.Run()
 		}
 
 		whenCreationSucceeds := func() {
 			It("calls driver.Unpack() with the expected args", func() {
-				var args toot.UnpackCalls
-				readTestArgsFile(toot.UnpackArgsFileName, &args)
+				var args foot.UnpackCalls
+				readTestArgsFile(foot.UnpackArgsFileName, &args)
 				Expect(args[0].ID).NotTo(BeEmpty())
 				Expect(args[0].ParentIDs).To(BeEmpty())
 			})
 
 			It("calls driver.Bundle() with expected args", func() {
-				var unpackArgs toot.UnpackCalls
-				readTestArgsFile(toot.UnpackArgsFileName, &unpackArgs)
+				var unpackArgs foot.UnpackCalls
+				readTestArgsFile(foot.UnpackArgsFileName, &unpackArgs)
 
-				var bundleArgs toot.BundleCalls
-				readTestArgsFile(toot.BundleArgsFileName, &bundleArgs)
+				var bundleArgs foot.BundleCalls
+				readTestArgsFile(foot.BundleArgsFileName, &bundleArgs)
 				unpackLayerIds := []string{}
 				for _, call := range unpackArgs {
 					unpackLayerIds = append(unpackLayerIds, call.ID)
@@ -122,13 +122,13 @@ var _ = Describe("groot", func() {
 			Describe("subsequent invocations", func() {
 				Context("when the rootfs file has not changed", func() {
 					It("generates the same layer ID", func() {
-						var unpackArgs toot.UnpackCalls
-						readTestArgsFile(toot.UnpackArgsFileName, &unpackArgs)
+						var unpackArgs foot.UnpackCalls
+						readTestArgsFile(foot.UnpackArgsFileName, &unpackArgs)
 						firstInvocationLayerID := unpackArgs[0].ID
 
-						Expect(runTootCmd()).To(Succeed())
+						Expect(runFootCmd()).To(Succeed())
 
-						readTestArgsFile(toot.UnpackArgsFileName, &unpackArgs)
+						readTestArgsFile(foot.UnpackArgsFileName, &unpackArgs)
 						secondInvocationLayerID := unpackArgs[0].ID
 
 						Expect(secondInvocationLayerID).To(Equal(firstInvocationLayerID))
@@ -138,21 +138,21 @@ var _ = Describe("groot", func() {
 
 			Describe("layer caching", func() {
 				It("calls exists", func() {
-					var existsArgs toot.ExistsCalls
-					readTestArgsFile(toot.ExistsArgsFileName, &existsArgs)
+					var existsArgs foot.ExistsCalls
+					readTestArgsFile(foot.ExistsArgsFileName, &existsArgs)
 					Expect(existsArgs[0].LayerID).ToNot(BeEmpty())
 				})
 
 				Context("when the layer is not cached", func() {
 					It("calls unpack with the same layerID", func() {
-						var existsArgs toot.ExistsCalls
-						readTestArgsFile(toot.ExistsArgsFileName, &existsArgs)
+						var existsArgs foot.ExistsCalls
+						readTestArgsFile(foot.ExistsArgsFileName, &existsArgs)
 						Expect(existsArgs[0].LayerID).ToNot(BeEmpty())
 
-						Expect(argFilePath(toot.UnpackArgsFileName)).To(BeAnExistingFile())
+						Expect(argFilePath(foot.UnpackArgsFileName)).To(BeAnExistingFile())
 
-						var unpackArgs toot.UnpackCalls
-						readTestArgsFile(toot.UnpackArgsFileName, &unpackArgs)
+						var unpackArgs foot.UnpackCalls
+						readTestArgsFile(foot.UnpackArgsFileName, &unpackArgs)
 						Expect(len(unpackArgs)).To(Equal(len(existsArgs)))
 
 						lastCall := len(unpackArgs) - 1
@@ -164,11 +164,11 @@ var _ = Describe("groot", func() {
 
 				Context("when the layer is cached", func() {
 					BeforeEach(func() {
-						env = append(env, "TOOT_LAYER_EXISTS=true")
+						env = append(env, "FOOT_LAYER_EXISTS=true")
 					})
 
 					It("doesn't call unpack", func() {
-						Expect(argFilePath(toot.UnpackArgsFileName)).ToNot(BeAnExistingFile())
+						Expect(argFilePath(foot.UnpackArgsFileName)).ToNot(BeAnExistingFile())
 					})
 				})
 			})
@@ -187,19 +187,19 @@ var _ = Describe("groot", func() {
 					Expect(ioutil.WriteFile(configFilePath, []byte(configYml), 0600)).To(Succeed())
 				}
 
-				tootArgv := []string{"--config", configFilePath, "create", rootfsURI, handle}
-				tootCmd := exec.Command(tootBinPath, tootArgv...)
-				tootCmd.Stdout = io.MultiWriter(stdout, GinkgoWriter)
-				tootCmd.Stderr = io.MultiWriter(stderr, GinkgoWriter)
-				tootCmd.Env = append(os.Environ(), env...)
-				exitErr := tootCmd.Run()
+				footArgv := []string{"--config", configFilePath, "create", rootfsURI, handle}
+				footCmd := exec.Command(footBinPath, footArgv...)
+				footCmd.Stdout = io.MultiWriter(stdout, GinkgoWriter)
+				footCmd.Stderr = io.MultiWriter(stderr, GinkgoWriter)
+				footCmd.Env = append(os.Environ(), env...)
+				exitErr := footCmd.Run()
 				Expect(exitErr).To(HaveOccurred())
 				Expect(exitErr.(*exec.ExitError).Sys().(syscall.WaitStatus).ExitStatus()).To(Equal(1))
 			})
 
 			Context("when driver.Bundle() returns an error", func() {
 				BeforeEach(func() {
-					env = append(env, "TOOT_BUNDLE_ERROR=true")
+					env = append(env, "FOOT_BUNDLE_ERROR=true")
 				})
 
 				It("prints the error", func() {
@@ -209,7 +209,7 @@ var _ = Describe("groot", func() {
 
 			Context("when driver.Unpack() returns an error", func() {
 				BeforeEach(func() {
-					env = append(env, "TOOT_UNPACK_ERROR=true")
+					env = append(env, "FOOT_UNPACK_ERROR=true")
 				})
 
 				It("prints the error", func() {
@@ -261,30 +261,30 @@ var _ = Describe("groot", func() {
 				JustBeforeEach(func() {
 					Expect(ioutil.WriteFile(rootfsURI, []byte("a-rootfs"), 0600)).To(Succeed())
 
-					Expect(runTootCmd()).To(Succeed())
+					Expect(runFootCmd()).To(Succeed())
 				})
 
 				whenCreationSucceeds()
 
 				It("calls driver.Unpack() with the correct stream", func() {
-					var args toot.UnpackCalls
-					readTestArgsFile(toot.UnpackArgsFileName, &args)
+					var args foot.UnpackCalls
+					readTestArgsFile(foot.UnpackArgsFileName, &args)
 					Expect(string(args[0].LayerTarContents)).To(Equal("a-rootfs"))
 				})
 
 				Describe("subsequent invocations", func() {
 					Context("when the rootfs file timestamp has changed", func() {
 						It("generates a different layer ID", func() {
-							var unpackArgs toot.UnpackCalls
-							readTestArgsFile(toot.UnpackArgsFileName, &unpackArgs)
+							var unpackArgs foot.UnpackCalls
+							readTestArgsFile(foot.UnpackArgsFileName, &unpackArgs)
 							firstInvocationLayerID := unpackArgs[0].ID
 
 							now := time.Now()
 							Expect(os.Chtimes(rootfsURI, now.Add(time.Hour), now.Add(time.Hour))).To(Succeed())
 
-							Expect(runTootCmd()).To(Succeed())
+							Expect(runFootCmd()).To(Succeed())
 
-							readTestArgsFile(toot.UnpackArgsFileName, &unpackArgs)
+							readTestArgsFile(foot.UnpackArgsFileName, &unpackArgs)
 							secondInvocationLayerID := unpackArgs[1].ID
 
 							Expect(secondInvocationLayerID).NotTo(Equal(firstInvocationLayerID))
@@ -297,15 +297,15 @@ var _ = Describe("groot", func() {
 				JustBeforeEach(func() {
 					rootfsURI = "docker:///cfgarden/three-layers"
 
-					Expect(runTootCmd()).To(Succeed())
+					Expect(runFootCmd()).To(Succeed())
 				})
 
 				whenCreationSucceeds()
 
 				Context("when the image has multiple layers", func() {
 					It("correctly passes parent IDs to each driver.Unpack() call", func() {
-						var args toot.UnpackCalls
-						readTestArgsFile(toot.UnpackArgsFileName, &args)
+						var args foot.UnpackCalls
+						readTestArgsFile(foot.UnpackArgsFileName, &args)
 
 						chainIDs := []string{}
 						for _, a := range args {
