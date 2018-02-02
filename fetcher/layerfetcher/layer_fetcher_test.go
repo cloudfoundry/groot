@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"compress/gzip"
 	"errors"
-	"io/ioutil"
 	"net/url"
+	"os"
 	"time"
 
 	"code.cloudfoundry.org/groot/imagepuller"
@@ -26,7 +26,7 @@ var _ = Describe("LayerFetcher", func() {
 		fetcher           *layerfetcher.LayerFetcher
 		logger            *lagertest.TestLogger
 		imageURL          *url.URL
-		gzipedBlobContent []byte
+		gzipedBlobContent string
 	)
 
 	BeforeEach(func() {
@@ -34,14 +34,13 @@ var _ = Describe("LayerFetcher", func() {
 
 		gzipBuffer := bytes.NewBuffer([]byte{})
 		gzipWriter := gzip.NewWriter(gzipBuffer)
-		_, err := gzipWriter.Write([]byte("hello-world"))
-		Expect(err).NotTo(HaveOccurred())
+		writeString(gzipWriter, "hello-world")
 		Expect(gzipWriter.Close()).To(Succeed())
-		gzipedBlobContent, err = ioutil.ReadAll(gzipBuffer)
-		Expect(err).NotTo(HaveOccurred())
+		gzipedBlobContent = readAll(gzipBuffer)
 
 		fetcher = layerfetcher.NewLayerFetcher(fakeSource)
 
+		var err error
 		logger = lagertest.NewTestLogger("test-layer-fetcher")
 		imageURL, err = url.Parse("docker:///cfgarden/empty:v0.1.1")
 		Expect(err).NotTo(HaveOccurred())
@@ -96,10 +95,10 @@ var _ = Describe("LayerFetcher", func() {
 			})
 			fakeSource.ManifestReturns(fakeManifest, nil)
 
-			imageURL, err := url.Parse("docker:///cfgarden/empty:v0.1.1")
+			url, err := url.Parse("docker:///cfgarden/empty:v0.1.1")
 			Expect(err).NotTo(HaveOccurred())
 
-			imageInfo, err := fetcher.ImageInfo(logger, imageURL)
+			imageInfo, err := fetcher.ImageInfo(logger, url)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(imageInfo.LayerInfos).To(Equal([]imagepuller.LayerInfo{
@@ -157,22 +156,30 @@ var _ = Describe("LayerFetcher", func() {
 	})
 
 	Describe("StreamBlob", func() {
-		var layerInfo = imagepuller.LayerInfo{
-			BlobID: "sha256:layer-digest",
-		}
+		var (
+			layerInfo = imagepuller.LayerInfo{
+				BlobID: "sha256:layer-digest",
+			}
+			tmpFile *os.File
+		)
+
 		BeforeEach(func() {
-			tmpFile, err := ioutil.TempFile("", "")
-			Expect(err).NotTo(HaveOccurred())
-			_, err = tmpFile.Write(gzipedBlobContent)
-			Expect(err).NotTo(HaveOccurred())
-			defer func() { _ = tmpFile.Close() }()
+			tmpFile = tempFile()
+			defer tmpFile.Close()
+			writeString(tmpFile, gzipedBlobContent)
 
 			fakeSource.BlobReturns(tmpFile.Name(), 0, nil)
 		})
 
+		AfterEach(func() {
+			os.Remove(tmpFile.Name())
+			Expect(tmpFile.Name()).NotTo(BeAnExistingFile())
+		})
+
 		It("uses the source", func() {
-			_, _, err := fetcher.StreamBlob(logger, imageURL, layerInfo)
+			stream, _, err := fetcher.StreamBlob(logger, imageURL, layerInfo)
 			Expect(err).NotTo(HaveOccurred())
+			Expect(stream.Close()).To(Succeed())
 
 			Expect(fakeSource.BlobCallCount()).To(Equal(1))
 			_, usedImageURL, layerInfo := fakeSource.BlobArgsForCall(0)
@@ -183,28 +190,24 @@ var _ = Describe("LayerFetcher", func() {
 		It("returns the stream from the source", func(done Done) {
 			stream, _, err := fetcher.StreamBlob(logger, imageURL, layerInfo)
 			Expect(err).NotTo(HaveOccurred())
+			defer stream.Close()
 
 			gzipReader, err := gzip.NewReader(stream)
 			Expect(err).NotTo(HaveOccurred())
-			contents, err := ioutil.ReadAll(gzipReader)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(string(contents)).To(Equal("hello-world"))
+			Expect(readAll(gzipReader)).To(Equal("hello-world"))
 
 			close(done)
 		}, 2.0)
 
 		It("returns the size of the stream", func() {
-			tmpFile, err := ioutil.TempFile("", "")
-			Expect(err).NotTo(HaveOccurred())
-			defer func() { _ = tmpFile.Close() }()
-
 			gzipWriter := gzip.NewWriter(tmpFile)
-			Expect(gzipWriter.Close()).To(Succeed())
+			defer gzipWriter.Close()
 
 			fakeSource.BlobReturns(tmpFile.Name(), 1024, nil)
 
-			_, size, err := fetcher.StreamBlob(logger, imageURL, layerInfo)
+			stream, size, err := fetcher.StreamBlob(logger, imageURL, layerInfo)
 			Expect(err).NotTo(HaveOccurred())
+			defer stream.Close()
 			Expect(size).To(Equal(int64(1024)))
 		})
 

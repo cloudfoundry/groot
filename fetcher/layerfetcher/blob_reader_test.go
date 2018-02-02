@@ -1,8 +1,6 @@
 package layerfetcher_test
 
 import (
-	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -57,24 +55,6 @@ var _ = Describe("BlobReader", func() {
 		})
 	})
 })
-
-func readAll(reader io.Reader) string {
-	contents, err := ioutil.ReadAll(reader)
-	Expect(err).NotTo(HaveOccurred())
-	return string(contents)
-}
-
-func writeString(writer io.Writer, contents string) {
-	size, err := io.WriteString(writer, contents)
-	Expect(err).NotTo(HaveOccurred())
-	Expect(len(contents)).To(Equal(size))
-}
-
-func tempFile() *os.File {
-	file, err := ioutil.TempFile("", "")
-	Expect(err).NotTo(HaveOccurred())
-	return file
-}
 
 func removeAllIfTemp(path string, blobReader *layerfetcher.BlobReader) {
 	blobReader.Close()
