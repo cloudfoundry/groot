@@ -3,7 +3,6 @@ package integration_test
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"os/exec"
 	"path/filepath"
@@ -131,8 +130,7 @@ func whenUnpackIsUnsuccessful(runFootCmd func() error) {
 
 	JustBeforeEach(func() {
 		if writeConfigFile {
-			configYml := fmt.Sprintf(`log_level: %s`, logLevel)
-			Expect(ioutil.WriteFile(configFilePath, []byte(configYml), 0600)).To(Succeed())
+			writeFile(configFilePath, "log_level: "+logLevel)
 		}
 
 		exitErr := runFootCmd()
@@ -163,7 +161,7 @@ func whenUnpackIsUnsuccessful(runFootCmd func() error) {
 	Context("when the config file is invalid yaml", func() {
 		BeforeEach(func() {
 			writeConfigFile = false
-			Expect(ioutil.WriteFile(configFilePath, []byte("%haha"), 0600)).To(Succeed())
+			writeFile(configFilePath, "%haha")
 		})
 
 		It("prints an error", func() {
@@ -180,4 +178,8 @@ func whenUnpackIsUnsuccessful(runFootCmd func() error) {
 			Expect(stdout.String()).To(ContainSubstring("lol"))
 		})
 	})
+}
+
+func writeFile(path, content string) {
+	Expect(ioutil.WriteFile(path, []byte(content), 0600)).To(Succeed())
 }

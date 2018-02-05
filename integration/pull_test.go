@@ -2,7 +2,6 @@ package integration_test
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -48,15 +47,13 @@ var _ = Describe("pull", func() {
 	Describe("success", func() {
 		JustBeforeEach(func() {
 			if configFilePath != "" {
-				configYml := fmt.Sprintf(`log_level: %s`, logLevel)
-				Expect(ioutil.WriteFile(configFilePath, []byte(configYml), 0600)).To(Succeed())
+				writeFile(configFilePath, "log_level: "+logLevel)
 			}
 		})
 
 		Describe("Local images", func() {
 			JustBeforeEach(func() {
-				Expect(ioutil.WriteFile(rootfsURI, []byte("a-rootfs"), 0600)).To(Succeed())
-
+				writeFile(rootfsURI, "a-rootfs")
 				Expect(runPullCmd()).To(Succeed())
 			})
 
@@ -127,7 +124,7 @@ var _ = Describe("pull", func() {
 
 			JustBeforeEach(func() {
 				if createRootfsTar {
-					Expect(ioutil.WriteFile(rootfsURI, []byte("a-rootfs"), 0600)).To(Succeed())
+					writeFile(rootfsURI, "a-rootfs")
 				}
 			})
 
@@ -151,6 +148,5 @@ var _ = Describe("pull", func() {
 
 			whenUnpackIsUnsuccessful(runPullCmd)
 		})
-
 	})
 })
