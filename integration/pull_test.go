@@ -26,7 +26,7 @@ var _ = Describe("pull", func() {
 		rootfsURI = filepath.Join(tempDir, "rootfs.tar")
 
 		logLevel = ""
-		env = []string{"FOOT_BASE_DIR=" + tempDir}
+		env = []string{}
 		stdout = new(bytes.Buffer)
 		stderr = new(bytes.Buffer)
 	})
@@ -36,7 +36,7 @@ var _ = Describe("pull", func() {
 	})
 
 	runPullCmd := func() error {
-		footArgv := []string{"--config", configFilePath, "pull", rootfsURI}
+		footArgv := []string{"--config", configFilePath, "--driver-store", tempDir, "pull", rootfsURI}
 		footCmd := exec.Command(footBinPath, footArgv...)
 		footCmd.Stdout = io.MultiWriter(stdout, GinkgoWriter)
 		footCmd.Stderr = io.MultiWriter(stderr, GinkgoWriter)

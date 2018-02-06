@@ -38,7 +38,7 @@ var _ = Describe("groot", func() {
 			tempDir, err = ioutil.TempDir("", "groot-integration-tests")
 			Expect(err).NotTo(HaveOccurred())
 
-			env = []string{"FOOT_BASE_DIR=" + tempDir}
+			env = []string{}
 			stdout = new(bytes.Buffer)
 		})
 
@@ -47,7 +47,7 @@ var _ = Describe("groot", func() {
 		})
 
 		runFootCmd := func() error {
-			footArgv := []string{"delete", handle}
+			footArgv := []string{"--driver-store", tempDir, "delete", handle}
 			footCmd := exec.Command(footBinPath, footArgv...)
 			footCmd.Stdout = io.MultiWriter(stdout, GinkgoWriter)
 			footCmd.Env = append(os.Environ(), env...)

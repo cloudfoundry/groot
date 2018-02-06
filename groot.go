@@ -41,20 +41,20 @@ type Groot struct {
 	ImagePuller ImagePuller
 }
 
-func Run(driver Driver, argv []string) {
+func Run(driver Driver, argv []string, driverFlags []cli.Flag) {
 	// The `Before` closure sets this. This is ugly, but we don't know the log
 	// level until the CLI framework has parsed the flags.
 	var g *Groot
 
 	app := cli.NewApp()
 	app.Usage = "A garden image plugin"
-	app.Flags = []cli.Flag{
+	app.Flags = append([]cli.Flag{
 		cli.StringFlag{
 			Name:  "config",
 			Value: "",
 			Usage: "Path to config file",
 		},
-	}
+	}, driverFlags...)
 	app.Commands = []cli.Command{
 		{
 			Name: "create",
