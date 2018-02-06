@@ -29,7 +29,7 @@ var _ = Describe("create", func() {
 		rootfsURI = filepath.Join(tempDir, "rootfs.tar")
 
 		logLevel = ""
-		env = []string{"FOOT_BASE_DIR=" + tempDir}
+		env = []string{}
 		stdout = new(bytes.Buffer)
 		stderr = new(bytes.Buffer)
 	})
@@ -39,7 +39,7 @@ var _ = Describe("create", func() {
 	})
 
 	runCreateCmd := func() error {
-		footArgv := []string{"--config", configFilePath, "create", rootfsURI, handle}
+		footArgv := []string{"--config", configFilePath, "--driver-store", tempDir, "create", rootfsURI, handle}
 		footCmd := exec.Command(footBinPath, footArgv...)
 		footCmd.Stdout = io.MultiWriter(stdout, GinkgoWriter)
 		footCmd.Stderr = io.MultiWriter(stderr, GinkgoWriter)
