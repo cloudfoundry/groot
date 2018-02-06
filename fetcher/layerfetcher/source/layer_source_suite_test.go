@@ -3,12 +3,12 @@ package source_test
 import (
 	"archive/tar"
 	"io"
+	"net/url"
 	"os"
+	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"testing"
 )
 
 var (
@@ -42,4 +42,10 @@ func tarEntries(tarFile io.Reader) []string {
 	}
 
 	return entries
+}
+
+func urlParse(s string) *url.URL {
+	u, err := url.Parse(s)
+	Expect(err).NotTo(HaveOccurred())
+	return u
 }

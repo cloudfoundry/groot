@@ -193,9 +193,3 @@ var _ = Describe("Layer source: OCI", func() {
 		})
 	})
 })
-
-func urlParse(urlString string) *url.URL {
-	parsedURL, err := url.Parse(urlString)
-	ExpectWithOffset(1, err).NotTo(HaveOccurred())
-	return parsedURL
-}

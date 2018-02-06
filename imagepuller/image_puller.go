@@ -139,16 +139,18 @@ func (p *ImagePuller) buildLayer(logger lager.Logger, index int, layerInfos []La
 	downloadChan := make(chan downloadReturn, 1)
 	go p.downloadLayer(logger, spec, layerInfo, downloadChan)
 
-	if err := p.buildLayer(logger, index-1, layerInfos, spec); err != nil {
-		return err
-	}
+	// buildLayerErr is deliberately checked later so we can cleanup properly
+	buildLayerErr := p.buildLayer(logger, index-1, layerInfos, spec)
 
 	downloadResult := <-downloadChan
 	if downloadResult.Err != nil {
 		return downloadResult.Err
 	}
-
 	defer downloadResult.Stream.Close()
+
+	if buildLayerErr != nil {
+		return buildLayerErr
+	}
 
 	parentChainIDs := []string{}
 	if index != 0 {

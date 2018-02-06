@@ -59,9 +59,7 @@ var _ = Describe("Layer source: Docker", func() {
 		}
 
 		logger = lagertest.NewTestLogger("test-layer-source")
-		var err error
-		imageURL, err = url.Parse("docker:///cfgarden/empty:v0.1.1")
-		Expect(err).NotTo(HaveOccurred())
+		imageURL = urlParse("docker:///cfgarden/empty:v0.1.1")
 	})
 
 	JustBeforeEach(func() {
@@ -84,9 +82,7 @@ var _ = Describe("Layer source: Docker", func() {
 
 		Context("when the image schema version is 1", func() {
 			BeforeEach(func() {
-				var err error
-				imageURL, err = url.Parse("docker://cfgarden/empty:schemaV1")
-				Expect(err).NotTo(HaveOccurred())
+				imageURL = urlParse("docker://cfgarden/empty:schemaV1")
 			})
 
 			It("fetches the manifest", func() {
@@ -104,9 +100,7 @@ var _ = Describe("Layer source: Docker", func() {
 
 		Context("when the image is private", func() {
 			BeforeEach(func() {
-				var err error
-				imageURL, err = url.Parse("docker:///cfgarden/private")
-				Expect(err).NotTo(HaveOccurred())
+				imageURL = urlParse("docker:///cfgarden/private")
 
 				configBlob = "sha256:c2bf00eb303023869c676f91af930a12925c24d677999917e8d52c73fa10b73a"
 				layerInfos[0].BlobID = "sha256:dabca1fccc91489bf9914945b95582f16d6090f423174641710083d6651db4a4"
@@ -134,12 +128,11 @@ var _ = Describe("Layer source: Docker", func() {
 				var fakeRegistry *testhelpers.FakeRegistry
 
 				BeforeEach(func() {
-					dockerHubUrl, err := url.Parse("https://registry-1.docker.io")
-					Expect(err).NotTo(HaveOccurred())
+					dockerHubUrl := urlParse("https://registry-1.docker.io")
 					fakeRegistry = testhelpers.NewFakeRegistry(dockerHubUrl)
 					fakeRegistry.Start()
 					fakeRegistry.ForceTokenAuthError()
-					imageURL = string2URL(fmt.Sprintf("docker://%s/doesnt-matter-because-fake-registry", fakeRegistry.Addr()))
+					imageURL = urlParse(fmt.Sprintf("docker://%s/doesnt-matter-because-fake-registry", fakeRegistry.Addr()))
 
 					systemContext.DockerInsecureSkipTLSVerify = true
 				})
@@ -157,19 +150,16 @@ var _ = Describe("Layer source: Docker", func() {
 
 		Context("when the image url is invalid", func() {
 			It("returns an error", func() {
-				imageURL, err := url.Parse("docker:cfgarden/empty:v0.1.0")
-				Expect(err).NotTo(HaveOccurred())
+				url := urlParse("docker:cfgarden/empty:v0.1.0")
 
-				_, err = layerSource.Manifest(logger, imageURL)
+				_, err := layerSource.Manifest(logger, url)
 				Expect(err).To(MatchError(ContainSubstring("parsing url failed")))
 			})
 		})
 
 		Context("when the image does not exist", func() {
 			BeforeEach(func() {
-				var err error
-				imageURL, err = url.Parse("docker:///cfgarden/non-existing-image")
-				Expect(err).NotTo(HaveOccurred())
+				imageURL = urlParse("docker:///cfgarden/non-existing-image")
 
 				systemContext.DockerAuthConfig.Username = ""
 				systemContext.DockerAuthConfig.Password = ""
@@ -206,9 +196,7 @@ var _ = Describe("Layer source: Docker", func() {
 			var manifest layerfetcher.Manifest
 
 			BeforeEach(func() {
-				var err error
-				imageURL, err = url.Parse("docker:///cfgarden/private")
-				Expect(err).NotTo(HaveOccurred())
+				imageURL = urlParse("docker:///cfgarden/private")
 			})
 
 			JustBeforeEach(func() {
@@ -232,19 +220,16 @@ var _ = Describe("Layer source: Docker", func() {
 
 		Context("when the image url is invalid", func() {
 			It("returns an error", func() {
-				imageURL, err := url.Parse("docker:cfgarden/empty:v0.1.0")
-				Expect(err).NotTo(HaveOccurred())
+				url := urlParse("docker:cfgarden/empty:v0.1.0")
 
-				_, err = layerSource.Manifest(logger, imageURL)
+				_, err := layerSource.Manifest(logger, url)
 				Expect(err).To(MatchError(ContainSubstring("parsing url failed")))
 			})
 		})
 
 		Context("when the image schema version is 1", func() {
 			BeforeEach(func() {
-				var err error
-				imageURL, err = url.Parse("docker://cfgarden/empty:schemaV1")
-				Expect(err).NotTo(HaveOccurred())
+				imageURL = urlParse("docker://cfgarden/empty:schemaV1")
 			})
 
 			It("fetches the config", func() {
@@ -265,14 +250,12 @@ var _ = Describe("Layer source: Docker", func() {
 		var fakeRegistry *testhelpers.FakeRegistry
 
 		BeforeEach(func() {
-			dockerHubUrl, err := url.Parse("https://registry-1.docker.io")
-			Expect(err).NotTo(HaveOccurred())
+			dockerHubUrl := urlParse("https://registry-1.docker.io")
 			fakeRegistry = testhelpers.NewFakeRegistry(dockerHubUrl)
 			fakeRegistry.Start()
 
 			systemContext.DockerInsecureSkipTLSVerify = true
-			imageURL, err = url.Parse(fmt.Sprintf("docker://%s/cfgarden/empty:v0.1.1", fakeRegistry.Addr()))
-			Expect(err).NotTo(HaveOccurred())
+			imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:v0.1.1", fakeRegistry.Addr()))
 		})
 
 		AfterEach(func() {
@@ -323,13 +306,11 @@ var _ = Describe("Layer source: Docker", func() {
 		var fakeRegistry *testhelpers.FakeRegistry
 
 		BeforeEach(func() {
-			dockerHubUrl, err := url.Parse("https://registry-1.docker.io")
-			Expect(err).NotTo(HaveOccurred())
+			dockerHubUrl := urlParse("https://registry-1.docker.io")
 			fakeRegistry = testhelpers.NewFakeRegistry(dockerHubUrl)
 			fakeRegistry.Start()
 
-			imageURL, err = url.Parse(fmt.Sprintf("docker://%s/cfgarden/empty:v0.1.1", fakeRegistry.Addr()))
-			Expect(err).NotTo(HaveOccurred())
+			imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:v0.1.1", fakeRegistry.Addr()))
 
 		})
 
@@ -373,9 +354,11 @@ var _ = Describe("Layer source: Docker", func() {
 			It("downloads and uncompresses the blob", func() {
 				blobPath, size, err := layerSource.Blob(logger, imageURL, layerInfos[0])
 				Expect(err).NotTo(HaveOccurred())
+				defer os.Remove(blobPath)
 
 				blobReader, err := os.Open(blobPath)
 				Expect(err).NotTo(HaveOccurred())
+				defer blobReader.Close()
 
 				Expect(size).To(Equal(int64(90)))
 				entries := tarEntries(blobReader)
@@ -385,9 +368,7 @@ var _ = Describe("Layer source: Docker", func() {
 
 		Context("when using private images", func() {
 			BeforeEach(func() {
-				var err error
-				imageURL, err = url.Parse("docker:///cfgarden/private")
-				Expect(err).NotTo(HaveOccurred())
+				imageURL = urlParse("docker:///cfgarden/private")
 
 				layerInfos[0].BlobID = "sha256:dabca1fccc91489bf9914945b95582f16d6090f423174641710083d6651db4a4"
 				layerInfos[0].DiffID = "780016ca8250bcbed0cbcf7b023c75550583de26629e135a1e31c0bf91fba296"
@@ -425,9 +406,11 @@ var _ = Describe("Layer source: Docker", func() {
 			It("downloads and uncompresses the blob", func() {
 				blobPath, size, err := layerSource.Blob(logger, imageURL, layerInfos[0])
 				Expect(err).NotTo(HaveOccurred())
+				defer os.Remove(blobPath)
 
 				blobReader, err := os.Open(blobPath)
 				Expect(err).NotTo(HaveOccurred())
+				defer blobReader.Close()
 
 				Expect(size).To(Equal(int64(90)))
 				entries := tarEntries(blobReader)
@@ -437,14 +420,30 @@ var _ = Describe("Layer source: Docker", func() {
 	})
 
 	Describe("Blob", func() {
+		var (
+			blobPath string
+			blobSize int64
+			blobErr  error
+		)
+
+		JustBeforeEach(func() {
+			blobPath, blobSize, blobErr = layerSource.Blob(logger, imageURL, layerInfos[0])
+		})
+
+		AfterEach(func() {
+			if _, err := os.Stat(blobPath); err == nil {
+				Expect(os.Remove(blobPath)).To(Succeed())
+			}
+		})
+
 		It("downloads and uncompresses the blob", func() {
-			blobPath, size, err := layerSource.Blob(logger, imageURL, layerInfos[0])
-			Expect(err).NotTo(HaveOccurred())
+			Expect(blobErr).NotTo(HaveOccurred())
 
 			blobReader, err := os.Open(blobPath)
 			Expect(err).NotTo(HaveOccurred())
+			defer blobReader.Close()
 
-			Expect(size).To(Equal(int64(90)))
+			Expect(blobSize).To(Equal(int64(90)))
 			entries := tarEntries(blobReader)
 			Expect(entries).To(ContainElement("hello"))
 		})
@@ -453,8 +452,7 @@ var _ = Describe("Layer source: Docker", func() {
 			var fakeRegistry *testhelpers.FakeRegistry
 
 			BeforeEach(func() {
-				dockerHubUrl, err := url.Parse("https://registry-1.docker.io")
-				Expect(err).NotTo(HaveOccurred())
+				dockerHubUrl := urlParse("https://registry-1.docker.io")
 				fakeRegistry = testhelpers.NewFakeRegistry(dockerHubUrl)
 
 				fakeRegistry.WhenGettingBlob(layerInfos[0].BlobID, 1, func(rw http.ResponseWriter, req *http.Request) {
@@ -463,10 +461,10 @@ var _ = Describe("Layer source: Docker", func() {
 
 				fakeRegistry.Start()
 
-				imageURL, err = url.Parse(fmt.Sprintf("docker://%s/cfgarden/empty:v0.1.1", fakeRegistry.Addr()))
-				Expect(err).NotTo(HaveOccurred())
+				imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:v0.1.1", fakeRegistry.Addr()))
 
 				systemContext.DockerInsecureSkipTLSVerify = true
+				layerInfos[0].MediaType = "gzip"
 			})
 
 			AfterEach(func() {
@@ -474,17 +472,13 @@ var _ = Describe("Layer source: Docker", func() {
 			})
 
 			It("returns an error", func() {
-				layerInfos[0].MediaType = "gzip"
-				_, _, err := layerSource.Blob(logger, imageURL, layerInfos[0])
-				Expect(err).To(MatchError(ContainSubstring("expected blob to be of type")))
+				Expect(blobErr).To(MatchError(ContainSubstring("expected blob to be of type")))
 			})
 		})
 
 		Context("when the image is private", func() {
 			BeforeEach(func() {
-				var err error
-				imageURL, err = url.Parse("docker:///cfgarden/private")
-				Expect(err).NotTo(HaveOccurred())
+				imageURL = urlParse("docker:///cfgarden/private")
 
 				layerInfos = []imagepuller.LayerInfo{
 					{
@@ -497,13 +491,13 @@ var _ = Describe("Layer source: Docker", func() {
 
 			Context("when the correct credentials are provided", func() {
 				It("fetches the config", func() {
-					blobPath, size, err := layerSource.Blob(logger, imageURL, layerInfos[0])
-					Expect(err).NotTo(HaveOccurred())
+					Expect(blobErr).NotTo(HaveOccurred())
 
 					blobReader, err := os.Open(blobPath)
 					Expect(err).NotTo(HaveOccurred())
+					defer blobReader.Close()
 
-					Expect(size).To(Equal(int64(90)))
+					Expect(blobSize).To(Equal(int64(90)))
 					entries := tarEntries(blobReader)
 					Expect(entries).To(ContainElement("hello"))
 				})
@@ -514,12 +508,11 @@ var _ = Describe("Layer source: Docker", func() {
 				var fakeRegistry *testhelpers.FakeRegistry
 
 				BeforeEach(func() {
-					dockerHubUrl, err := url.Parse("https://registry-1.docker.io")
-					Expect(err).NotTo(HaveOccurred())
+					dockerHubUrl := urlParse("https://registry-1.docker.io")
 					fakeRegistry = testhelpers.NewFakeRegistry(dockerHubUrl)
 					fakeRegistry.Start()
 					fakeRegistry.ForceTokenAuthError()
-					imageURL = string2URL(fmt.Sprintf("docker://%s/doesnt-matter-because-fake-registry", fakeRegistry.Addr()))
+					imageURL = urlParse(fmt.Sprintf("docker://%s/doesnt-matter-because-fake-registry", fakeRegistry.Addr()))
 
 					systemContext.DockerInsecureSkipTLSVerify = true
 				})
@@ -529,19 +522,18 @@ var _ = Describe("Layer source: Docker", func() {
 				})
 
 				It("retuns an error", func() {
-					_, _, err := layerSource.Blob(logger, imageURL, layerInfos[0])
-					Expect(err).To(MatchError(ContainSubstring("unable to retrieve auth token")))
+					Expect(blobErr).To(MatchError(ContainSubstring("unable to retrieve auth token")))
 				})
 			})
 		})
 
 		Context("when the image url is invalid", func() {
-			It("returns an error", func() {
-				imageURL, err := url.Parse("docker:cfgarden/empty:v0.1.0")
-				Expect(err).NotTo(HaveOccurred())
+			BeforeEach(func() {
+				imageURL = urlParse("docker:cfgarden/empty:v0.1.0")
+			})
 
-				_, _, err = layerSource.Blob(logger, imageURL, layerInfos[0])
-				Expect(err).To(MatchError(ContainSubstring("parsing url failed")))
+			It("returns an error", func() {
+				Expect(blobErr).To(MatchError(ContainSubstring("parsing url failed")))
 			})
 		})
 
@@ -556,18 +548,16 @@ var _ = Describe("Layer source: Docker", func() {
 			var fakeRegistry *testhelpers.FakeRegistry
 
 			BeforeEach(func() {
-				dockerHubUrl, err := url.Parse("https://registry-1.docker.io")
-				Expect(err).NotTo(HaveOccurred())
+				dockerHubUrl := urlParse("https://registry-1.docker.io")
 				fakeRegistry = testhelpers.NewFakeRegistry(dockerHubUrl)
-				fakeRegistry.WhenGettingBlob(layerInfos[1].BlobID, 1, func(rw http.ResponseWriter, req *http.Request) {
+				fakeRegistry.WhenGettingBlob(layerInfos[0].BlobID, 1, func(rw http.ResponseWriter, req *http.Request) {
 					gzipWriter := gzip.NewWriter(rw)
 					_, _ = gzipWriter.Write([]byte("bad-blob"))
 					gzipWriter.Close()
 				})
 				fakeRegistry.Start()
 
-				imageURL, err = url.Parse(fmt.Sprintf("docker://%s/cfgarden/empty:v0.1.1", fakeRegistry.Addr()))
-				Expect(err).NotTo(HaveOccurred())
+				imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:v0.1.1", fakeRegistry.Addr()))
 
 				systemContext.DockerInsecureSkipTLSVerify = true
 			})
@@ -577,8 +567,7 @@ var _ = Describe("Layer source: Docker", func() {
 			})
 
 			It("returns an error", func() {
-				_, _, err := layerSource.Blob(logger, imageURL, layerInfos[1])
-				Expect(err).To(MatchError(ContainSubstring("layerID digest mismatch")))
+				Expect(blobErr).To(MatchError(ContainSubstring("layerID digest mismatch")))
 			})
 
 			Context("when a devious hacker tries to set skipOCIChecksumValidation to true", func() {
@@ -587,27 +576,19 @@ var _ = Describe("Layer source: Docker", func() {
 				})
 
 				It("returns an error", func() {
-					_, _, err := layerSource.Blob(logger, imageURL, layerInfos[1])
-					Expect(err).To(MatchError(ContainSubstring("layerID digest mismatch")))
+					Expect(blobErr).To(MatchError(ContainSubstring("layerID digest mismatch")))
 				})
 			})
 		})
 
 		Context("when the blob doesn't match the diffID", func() {
 			BeforeEach(func() {
-				layerInfos[1].DiffID = "0000000000000000000000000000000000000000000000000000000000000000"
+				layerInfos[0].DiffID = "0000000000000000000000000000000000000000000000000000000000000000"
 			})
 
 			It("returns an error", func() {
-				_, _, err := layerSource.Blob(logger, imageURL, layerInfos[1])
-				Expect(err).To(MatchError(ContainSubstring("diffID digest mismatch")))
+				Expect(blobErr).To(MatchError(ContainSubstring("diffID digest mismatch")))
 			})
 		})
 	})
 })
-
-func string2URL(s string) *url.URL {
-	url, err := url.Parse(s)
-	Expect(err).NotTo(HaveOccurred())
-	return url
-}
