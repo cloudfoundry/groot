@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"code.cloudfoundry.org/groot"
 	"code.cloudfoundry.org/lager"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 )
@@ -75,15 +76,34 @@ func (t *Foot) Exists(logger lager.Logger, layerID string) bool {
 	return false
 }
 
+func (t *Foot) Stats(logger lager.Logger, id string) (groot.VolumeStats, error) {
+	logger.Info("stats-info")
+	logger.Debug("stats-debug")
+
+	if _, exists := os.LookupEnv("FOOT_STATS_ERROR"); exists {
+		return groot.VolumeStats{}, errors.New("stats-err")
+	}
+
+	saveObject([]interface{}{
+		StatsArgs{ID: id},
+	}, t.pathTo(StatsArgsFileName))
+	return ReturnedVolumeStats, nil
+}
+
 const (
 	UnpackArgsFileName = "unpack-args"
 	BundleArgsFileName = "bundle-args"
 	ExistsArgsFileName = "exists-args"
 	DeleteArgsFileName = "delete-args"
+	StatsArgsFileName  = "stats-args"
 )
 
 var (
-	BundleRuntimeSpec = specs.Spec{Root: &specs.Root{Path: "foot-rootfs-path"}}
+	BundleRuntimeSpec   = specs.Spec{Root: &specs.Root{Path: "foot-rootfs-path"}}
+	ReturnedVolumeStats = groot.VolumeStats{DiskUsage: groot.DiskUsage{
+		TotalBytesUsed:     1234,
+		ExclusiveBytesUsed: 12,
+	}}
 )
 
 type ExistsCalls []ExistsArgs
@@ -108,6 +128,11 @@ type BundleArgs struct {
 	ID        string
 	LayerIDs  []string
 	DiskLimit int64
+}
+
+type StatsCalls []StatsArgs
+type StatsArgs struct {
+	ID string
 }
 
 func (t *Foot) pathTo(filename string) string {
