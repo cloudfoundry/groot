@@ -164,6 +164,7 @@ var _ = Describe("Layer source: OCI", func() {
 		Context("when the blob is corrupted", func() {
 			BeforeEach(func() {
 				imageURL = urlParse(fmt.Sprintf("oci:///%s/../../../integration/oci-test-images/corrupted:latest", workDir))
+				layerInfo.Size = 668551
 			})
 
 			It("returns an error", func() {
@@ -175,6 +176,7 @@ var _ = Describe("Layer source: OCI", func() {
 			BeforeEach(func() {
 				imageURL = urlParse(fmt.Sprintf("oci:///%s/../../../integration/oci-test-images/corrupted:latest", workDir))
 				skipOCIChecksumValidation = true
+				layerInfo.Size = 668551
 			})
 
 			It("does not validate against checksums and does not return an error", func() {
@@ -189,6 +191,27 @@ var _ = Describe("Layer source: OCI", func() {
 
 			It("returns an error", func() {
 				Expect(blobErr).To(MatchError(ContainSubstring("diffID digest mismatch")))
+			})
+		})
+		Context("when the actual blob size is greater than the layersize in the manifest", func() {
+			BeforeEach(func() {
+				layerInfo.Size = 100
+			})
+
+			It("returns an error", func() {
+				_, _, err := layerSource.Blob(logger, imageURL, layerInfo)
+				Expect(err).To(MatchError(ContainSubstring("layer size is greater than the value in the manifest")))
+			})
+		})
+
+		Context("when the actual blob size is less than the layersize in the manifest", func() {
+			BeforeEach(func() {
+				layerInfo.Size = 10000000000000
+			})
+
+			It("returns an error", func() {
+				_, _, err := layerSource.Blob(logger, imageURL, layerInfo)
+				Expect(err).To(MatchError(ContainSubstring("layer size is less than the value in the manifest")))
 			})
 		})
 	})
