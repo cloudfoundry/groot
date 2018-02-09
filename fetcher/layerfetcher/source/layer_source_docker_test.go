@@ -29,7 +29,7 @@ var _ = Describe("Layer source: Docker", func() {
 		layerInfos    []imagepuller.LayerInfo
 		systemContext types.SystemContext
 
-		skipOCIChecksumValidation bool
+		skipOCILayerValidation bool
 	)
 
 	BeforeEach(func() {
@@ -40,7 +40,7 @@ var _ = Describe("Layer source: Docker", func() {
 			},
 		}
 
-		skipOCIChecksumValidation = false
+		skipOCILayerValidation = false
 
 		configBlob = "sha256:217f3b4afdf698d639f854d9c6d640903a011413bc7e7bffeabe63c7ca7e4a7d"
 		layerInfos = []imagepuller.LayerInfo{
@@ -63,7 +63,7 @@ var _ = Describe("Layer source: Docker", func() {
 	})
 
 	JustBeforeEach(func() {
-		layerSource = source.NewLayerSource(systemContext, skipOCIChecksumValidation)
+		layerSource = source.NewLayerSource(systemContext, skipOCILayerValidation)
 	})
 
 	Describe("Manifest", func() {
@@ -203,7 +203,7 @@ var _ = Describe("Layer source: Docker", func() {
 			})
 
 			JustBeforeEach(func() {
-				layerSource = source.NewLayerSource(systemContext, skipOCIChecksumValidation)
+				layerSource = source.NewLayerSource(systemContext, skipOCILayerValidation)
 				var err error
 				manifest, err = layerSource.Manifest(logger, imageURL)
 				Expect(err).NotTo(HaveOccurred())
@@ -380,7 +380,7 @@ var _ = Describe("Layer source: Docker", func() {
 			})
 
 			JustBeforeEach(func() {
-				layerSource = source.NewLayerSource(systemContext, skipOCIChecksumValidation)
+				layerSource = source.NewLayerSource(systemContext, skipOCILayerValidation)
 			})
 
 			It("fetches the manifest", func() {
@@ -574,9 +574,9 @@ var _ = Describe("Layer source: Docker", func() {
 				Expect(blobErr).To(MatchError(ContainSubstring("layerID digest mismatch")))
 			})
 
-			Context("when a devious hacker tries to set skipOCIChecksumValidation to true", func() {
+			Context("when a devious hacker tries to set skipOCILayerValidation to true", func() {
 				BeforeEach(func() {
-					skipOCIChecksumValidation = true
+					skipOCILayerValidation = true
 				})
 
 				It("returns an error", func() {

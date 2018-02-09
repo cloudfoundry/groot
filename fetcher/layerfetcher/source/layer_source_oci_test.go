@@ -25,11 +25,11 @@ var _ = Describe("Layer source: OCI", func() {
 		workDir       string
 		systemContext types.SystemContext
 
-		skipOCIChecksumValidation bool
+		skipOCILayerValidation bool
 	)
 
 	BeforeEach(func() {
-		skipOCIChecksumValidation = false
+		skipOCILayerValidation = false
 
 		configBlob = "sha256:10c8f0eb9d1af08fe6e3b8dbd29e5aa2b6ecfa491ecd04ed90de19a4ac22de7b"
 		layerInfos = []imagepuller.LayerInfo{
@@ -55,7 +55,7 @@ var _ = Describe("Layer source: OCI", func() {
 	})
 
 	JustBeforeEach(func() {
-		layerSource = source.NewLayerSource(systemContext, skipOCIChecksumValidation)
+		layerSource = source.NewLayerSource(systemContext, skipOCILayerValidation)
 	})
 
 	Describe("Manifest", func() {
@@ -172,16 +172,28 @@ var _ = Describe("Layer source: OCI", func() {
 			})
 		})
 
-		Context("when skipOCIChecksumValidation is set to true", func() {
+		Context("when skipOCILayerValidation is set to true", func() {
 			BeforeEach(func() {
 				imageURL = urlParse(fmt.Sprintf("oci:///%s/../../../integration/oci-test-images/corrupted:latest", workDir))
-				skipOCIChecksumValidation = true
+				skipOCILayerValidation = true
 				layerInfo.Size = 668551
 			})
 
 			It("does not validate against checksums and does not return an error", func() {
 				Expect(blobErr).NotTo(HaveOccurred())
 			})
+
+			Context("when the actual blob size is different than the layersize in the manifest", func() {
+				BeforeEach(func() {
+					layerInfo.Size = 100
+				})
+
+				It("does not validate layer size", func() {
+					_, _, err := layerSource.Blob(logger, imageURL, layerInfo)
+					Expect(err).NotTo(HaveOccurred())
+				})
+			})
+
 		})
 
 		Context("when the blob doesn't match the diffID", func() {

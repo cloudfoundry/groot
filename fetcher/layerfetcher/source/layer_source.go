@@ -30,14 +30,14 @@ import (
 const MAX_DOCKER_RETRIES = 3
 
 type LayerSource struct {
-	skipOCIChecksumValidation bool
-	systemContext             types.SystemContext
+	skipOCILayerValidation bool
+	systemContext          types.SystemContext
 }
 
-func NewLayerSource(systemContext types.SystemContext, skipOCIChecksumValidation bool) LayerSource {
+func NewLayerSource(systemContext types.SystemContext, skipOCILayerValidation bool) LayerSource {
 	return LayerSource{
-		systemContext:             systemContext,
-		skipOCIChecksumValidation: skipOCIChecksumValidation,
+		systemContext:          systemContext,
+		skipOCILayerValidation: skipOCILayerValidation,
 	}
 }
 
@@ -101,6 +101,7 @@ func (s *LayerSource) Blob(logger lager.Logger, imageURL *url.URL, layerInfo ima
 	quotaedReader := &layerfetcher.QuotaedReader{
 		DelegateReader: blob,
 		QuotaLeft:      layerInfo.Size,
+		SkipValidation: s.skipOCILayerValidation,
 		QuotaExceededErrorHandler: func() error {
 			return fmt.Errorf("layer size is greater than the value in the manifest")
 		},
@@ -149,7 +150,7 @@ func (s *LayerSource) Blob(logger lager.Logger, imageURL *url.URL, layerInfo ima
 		return "", 0, errors.Wrap(err, "diffID digest mismatch")
 	}
 
-	if quotaedReader.QuotaLeft > 0 {
+	if quotaedReader.AnyQuotaLeft() {
 		return "", 0, fmt.Errorf("layer size is less than the value in the manifest")
 	}
 
@@ -173,7 +174,7 @@ func (s *LayerSource) getBlobWithRetries(logger lager.Logger, imgSrc types.Image
 }
 
 func (s *LayerSource) checkCheckSum(logger lager.Logger, hash hash.Hash, digest string, scheme string) error {
-	if s.skipOCIChecksumValidation && scheme == "oci" {
+	if s.skipOCILayerValidation && scheme == "oci" {
 		return nil
 	}
 
