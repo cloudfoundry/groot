@@ -17,8 +17,10 @@ import (
 
 var _ = Describe("create", func() {
 	var (
-		rootfsURI string
-		handle    = "some-handle"
+		rootfsURI         string
+		handle            = "some-handle"
+		expectedDiskLimit int64
+		createArgs        []string
 	)
 
 	BeforeEach(func() {
@@ -32,6 +34,9 @@ var _ = Describe("create", func() {
 		env = []string{}
 		stdout = new(bytes.Buffer)
 		stderr = new(bytes.Buffer)
+
+		createArgs = []string{}
+		expectedDiskLimit = 0
 	})
 
 	AfterEach(func() {
@@ -39,7 +44,8 @@ var _ = Describe("create", func() {
 	})
 
 	runCreateCmd := func() error {
-		footArgv := []string{"--config", configFilePath, "--driver-store", tempDir, "create", rootfsURI, handle}
+		footArgv := append([]string{"--config", configFilePath, "--driver-store", tempDir, "create"}, createArgs...)
+		footArgv = append(footArgv, rootfsURI, handle)
 		footCmd := exec.Command(footBinPath, footArgv...)
 		footCmd.Stdout = io.MultiWriter(stdout, GinkgoWriter)
 		footCmd.Stderr = io.MultiWriter(stderr, GinkgoWriter)
@@ -60,6 +66,7 @@ var _ = Describe("create", func() {
 			}
 			Expect(bundleArgs[0].ID).To(Equal(handle))
 			Expect(bundleArgs[0].LayerIDs).To(ConsistOf(unpackLayerIds))
+			Expect(bundleArgs[0].DiskLimit).To(Equal(expectedDiskLimit))
 		})
 	}
 
@@ -83,14 +90,38 @@ var _ = Describe("create", func() {
 		})
 
 		Describe("Local images", func() {
+			var imageSize int64
+
 			JustBeforeEach(func() {
-				writeFile(rootfsURI, "a-rootfs")
+				imageContents := "a-rootfs"
+				imageSize = int64(len(imageContents))
+				writeFile(rootfsURI, imageContents)
 				Expect(runCreateCmd()).To(Succeed())
 			})
 
 			Context("when command succeeds", func() {
 				unpackIsSuccessful(runCreateCmd)
 				bundleIsSuccessful(handle)
+			})
+
+			Context("--disk-limit-size-bytes is given", func() {
+				BeforeEach(func() {
+					createArgs = []string{"--disk-limit-size-bytes", "500"}
+					expectedDiskLimit = 500 - imageSize
+				})
+
+				unpackIsSuccessful(runCreateCmd)
+				bundleIsSuccessful(handle)
+
+				Context("--exclude-image-from-quota is given as well", func() {
+					BeforeEach(func() {
+						createArgs = []string{"--disk-limit-size-bytes", "500", "--exclude-image-from-quota"}
+						expectedDiskLimit = 500
+					})
+
+					unpackIsSuccessful(runCreateCmd)
+					bundleIsSuccessful(handle)
+				})
 			})
 
 			It("calls driver.Unpack() with the correct stream", func() {
@@ -121,7 +152,9 @@ var _ = Describe("create", func() {
 		})
 
 		Describe("Remote images", func() {
+			var imageSize int64
 			JustBeforeEach(func() {
+				imageSize = 297
 				rootfsURI = "docker:///cfgarden/three-layers"
 
 				Expect(runCreateCmd()).To(Succeed())
@@ -130,6 +163,26 @@ var _ = Describe("create", func() {
 			Context("when command succeeds", func() {
 				unpackIsSuccessful(runCreateCmd)
 				bundleIsSuccessful(handle)
+			})
+
+			Context("--disk-limit-size-bytes is given", func() {
+				BeforeEach(func() {
+					createArgs = []string{"--disk-limit-size-bytes", "500"}
+					expectedDiskLimit = 500 - imageSize
+				})
+
+				unpackIsSuccessful(runCreateCmd)
+				bundleIsSuccessful(handle)
+
+				Context("--exclude-image-from-quota is given as well", func() {
+					BeforeEach(func() {
+						createArgs = []string{"--disk-limit-size-bytes", "500", "--exclude-image-from-quota"}
+						expectedDiskLimit = 500
+					})
+
+					unpackIsSuccessful(runCreateCmd)
+					bundleIsSuccessful(handle)
+				})
 			})
 
 			Context("when the image has multiple layers", func() {
@@ -171,6 +224,36 @@ var _ = Describe("create", func() {
 
 				It("prints an error", func() {
 					Expect(stdout.String()).To(ContainSubstring(notFoundRuntimeError[runtime.GOOS]))
+				})
+			})
+
+			Context("--disk-limit-size-bytes is negative", func() {
+				BeforeEach(func() {
+					createArgs = []string{"--disk-limit-size-bytes", "-500", "--exclude-image-from-quota"}
+				})
+
+				It("prints an error", func() {
+					Expect(stdout.String()).To(ContainSubstring("invalid disk limit: -500"))
+				})
+			})
+
+			Context("--disk-limit-size-bytes is less than the image size", func() {
+				BeforeEach(func() {
+					createArgs = []string{"--disk-limit-size-bytes", "5"}
+				})
+
+				It("prints an error", func() {
+					Expect(stdout.String()).To(ContainSubstring("pulling image: layers exceed disk quota 8/5 bytes"))
+				})
+			})
+
+			Context("--disk-limit-size-bytes is exactly the image size", func() {
+				BeforeEach(func() {
+					createArgs = []string{"--disk-limit-size-bytes", "8"}
+				})
+
+				It("prints an error", func() {
+					Expect(stdout.String()).To(ContainSubstring("disk limit 8 must be larger than image size 8"))
 				})
 			})
 		})

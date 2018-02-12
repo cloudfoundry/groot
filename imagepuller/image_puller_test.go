@@ -37,9 +37,9 @@ var _ = Describe("Image Puller", func() {
 		fakeFetcher = new(imagepullerfakes.FakeFetcher)
 		expectedImgDesc = specsv1.Image{Author: "Groot"}
 		layerInfos = []imagepuller.LayerInfo{
-			{BlobID: "i-am-a-layer", ChainID: "layer-111", ParentChainID: ""},
-			{BlobID: "i-am-another-layer", ChainID: "chain-222", ParentChainID: "layer-111"},
-			{BlobID: "i-am-the-last-layer", ChainID: "chain-333", ParentChainID: "chain-222"},
+			{BlobID: "i-am-a-layer", ChainID: "layer-111", ParentChainID: "", Size: 111},
+			{BlobID: "i-am-another-layer", ChainID: "chain-222", ParentChainID: "layer-111", Size: 222},
+			{BlobID: "i-am-the-last-layer", ChainID: "chain-333", ParentChainID: "chain-222", Size: 333},
 		}
 		fakeFetcher.ImageInfoReturns(
 			imagepuller.ImageInfo{
@@ -85,6 +85,14 @@ var _ = Describe("Image Puller", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(image.ChainIDs).To(Equal([]string{"layer-111", "chain-222", "chain-333"}))
+	})
+
+	It("returns the total size of the base image", func() {
+		image, err := imagePuller.Pull(logger, imagepuller.ImageSpec{
+			ImageSrc: imageSrcURL,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(image.BaseImageSize).To(Equal(int64(666)))
 	})
 
 	It("passes the correct parentIDs to Unpack", func() {
