@@ -43,5 +43,8 @@ func (g *Groot) Create(handle string, rootfsURI *url.URL, diskLimit int64, exclu
 		return runspec.Spec{}, errors.Wrap(err, "creating bundle")
 	}
 
-	return bundle, nil
+	metadata := VolumeMetadata{BaseImageSize: image.BaseImageSize}
+	err = g.Driver.WriteMetadata(g.Logger.Session("write-metadata"), handle, metadata)
+
+	return bundle, err
 }
