@@ -6,12 +6,8 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"path/filepath"
-	"runtime"
-	"syscall"
 	"time"
 
-	"code.cloudfoundry.org/groot/integration/cmd/foot/foot"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -23,7 +19,6 @@ var (
 	footBinPath          string
 	tmpDir               string
 	env                  []string
-	logLevel             string
 	configFilePath       string
 	stdout               *bytes.Buffer
 	stderr               *bytes.Buffer
@@ -48,128 +43,6 @@ var _ = SynchronizedAfterSuite(func() {}, func() {
 func TestIntegration(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Integration Suite")
-}
-
-func unpackIsSuccessful(runFootCmd func() error) {
-	It("calls driver.Unpack() with the expected args", func() {
-		var args foot.UnpackCalls
-		unmarshalFile(filepath.Join(tmpDir, foot.UnpackArgsFileName), &args)
-		Expect(args[0].ID).NotTo(BeEmpty())
-		Expect(args[0].ParentIDs).To(BeEmpty())
-	})
-
-	Describe("subsequent invocations", func() {
-		Context("when the rootfs file has not changed", func() {
-			It("gernerates the same layer ID", func() {
-				var unpackArgs foot.UnpackCalls
-				unmarshalFile(filepath.Join(tmpDir, foot.UnpackArgsFileName), &unpackArgs)
-				firstInvocationLayerID := unpackArgs[0].ID
-
-				Expect(runFootCmd()).To(Succeed())
-
-				unmarshalFile(filepath.Join(tmpDir, foot.UnpackArgsFileName), &unpackArgs)
-				secondInvocationLayerID := unpackArgs[0].ID
-
-				Expect(secondInvocationLayerID).To(Equal(firstInvocationLayerID))
-			})
-		})
-	})
-
-	Describe("layer caching", func() {
-		It("calls exists", func() {
-			var existsArgs foot.ExistsCalls
-			unmarshalFile(filepath.Join(tmpDir, foot.ExistsArgsFileName), &existsArgs)
-			Expect(existsArgs[0].LayerID).ToNot(BeEmpty())
-		})
-
-		Context("when the layer is not cached", func() {
-			It("calls driver.Unpack() with the layerID", func() {
-				var existsArgs foot.ExistsCalls
-				unmarshalFile(filepath.Join(tmpDir, foot.ExistsArgsFileName), &existsArgs)
-				Expect(existsArgs[0].LayerID).ToNot(BeEmpty())
-
-				Expect(filepath.Join(tmpDir, foot.UnpackArgsFileName)).To(BeAnExistingFile())
-
-				var unpackArgs foot.UnpackCalls
-				unmarshalFile(filepath.Join(tmpDir, foot.UnpackArgsFileName), &unpackArgs)
-				Expect(len(unpackArgs)).To(Equal(len(existsArgs)))
-
-				lastCall := len(unpackArgs) - 1
-				for i := range unpackArgs {
-					Expect(unpackArgs[i].ID).To(Equal(existsArgs[lastCall-i].LayerID))
-				}
-			})
-		})
-
-		Context("when the layer is cached", func() {
-			BeforeEach(func() {
-				env = append(env, "FOOT_LAYER_EXISTS=true")
-			})
-
-			It("doesn't call driver.Unpack()", func() {
-				Expect(filepath.Join(tmpDir, foot.UnpackArgsFileName)).ToNot(BeAnExistingFile())
-			})
-		})
-	})
-}
-
-func whenUnpackIsUnsuccessful(runFootCmd func() error) {
-	var writeConfigFile bool
-
-	BeforeEach(func() {
-		writeConfigFile = true
-	})
-
-	JustBeforeEach(func() {
-		if writeConfigFile {
-			writeFile(configFilePath, "log_level: "+logLevel)
-		}
-
-		exitErr := runFootCmd()
-		Expect(exitErr).To(HaveOccurred())
-		Expect(exitErr.(*exec.ExitError).Sys().(syscall.WaitStatus).ExitStatus()).To(Equal(1))
-	})
-
-	Context("when driver.Unpack() returns an error", func() {
-		BeforeEach(func() {
-			env = append(env, "FOOT_UNPACK_ERROR=true")
-		})
-
-		It("prints the error", func() {
-			Expect(stdout.String()).To(ContainSubstring("unpack-err\n"))
-		})
-	})
-
-	Context("when the config file path is not an existing file", func() {
-		BeforeEach(func() {
-			writeConfigFile = false
-		})
-
-		It("prints an error", func() {
-			Expect(stdout.String()).To(ContainSubstring(notFoundRuntimeError[runtime.GOOS]))
-		})
-	})
-
-	Context("when the config file is invalid yaml", func() {
-		BeforeEach(func() {
-			writeConfigFile = false
-			writeFile(configFilePath, "%haha")
-		})
-
-		It("prints an error", func() {
-			Expect(stdout.String()).To(ContainSubstring("yaml"))
-		})
-	})
-
-	Context("when the specified log level is invalid", func() {
-		BeforeEach(func() {
-			logLevel = "lol"
-		})
-
-		It("prints an error", func() {
-			Expect(stdout.String()).To(ContainSubstring("lol"))
-		})
-	})
 }
 
 func writeFile(path, content string) {
