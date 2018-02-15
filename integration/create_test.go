@@ -90,16 +90,33 @@ var _ = Describe("create", func() {
 		})
 
 		Describe("Local images", func() {
-			var imageSize int64
+			var (
+				imageSize             int64
+				excludeImageFromQuota bool
+			)
+
+			BeforeEach(func() {
+				excludeImageFromQuota = false
+				expectedDiskLimit = 500
+			})
 
 			JustBeforeEach(func() {
 				imageContents := "a-rootfs"
 				imageSize = int64(len(imageContents))
+
+				if !excludeImageFromQuota {
+					expectedDiskLimit -= imageSize
+				}
+
 				writeFile(rootfsURI, imageContents)
 				Expect(runCreateCmd()).To(Succeed())
 			})
 
 			Context("when command succeeds", func() {
+				JustBeforeEach(func() {
+					expectedDiskLimit = 0
+				})
+
 				unpackIsSuccessful(runCreateCmd)
 				bundleIsSuccessful(handle)
 			})
@@ -107,7 +124,6 @@ var _ = Describe("create", func() {
 			Context("--disk-limit-size-bytes is given", func() {
 				BeforeEach(func() {
 					createArgs = []string{"--disk-limit-size-bytes", "500"}
-					expectedDiskLimit = 500 - imageSize
 				})
 
 				unpackIsSuccessful(runCreateCmd)
@@ -115,8 +131,8 @@ var _ = Describe("create", func() {
 
 				Context("--exclude-image-from-quota is given as well", func() {
 					BeforeEach(func() {
+						excludeImageFromQuota = true
 						createArgs = []string{"--disk-limit-size-bytes", "500", "--exclude-image-from-quota"}
-						expectedDiskLimit = 500
 					})
 
 					unpackIsSuccessful(runCreateCmd)
@@ -168,6 +184,8 @@ var _ = Describe("create", func() {
 			Context("--disk-limit-size-bytes is given", func() {
 				BeforeEach(func() {
 					createArgs = []string{"--disk-limit-size-bytes", "500"}
+				})
+				JustBeforeEach(func() {
 					expectedDiskLimit = 500 - imageSize
 				})
 
@@ -177,6 +195,8 @@ var _ = Describe("create", func() {
 				Context("--exclude-image-from-quota is given as well", func() {
 					BeforeEach(func() {
 						createArgs = []string{"--disk-limit-size-bytes", "500", "--exclude-image-from-quota"}
+					})
+					JustBeforeEach(func() {
 						expectedDiskLimit = 500
 					})
 
