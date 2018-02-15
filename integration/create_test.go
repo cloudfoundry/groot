@@ -108,7 +108,6 @@ var _ = Describe("create", func() {
 
 		Describe("Local images", func() {
 			var (
-				imageSize             int64
 				excludeImageFromQuota bool
 			)
 

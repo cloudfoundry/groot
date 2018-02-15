@@ -79,12 +79,12 @@ type FakeDriver struct {
 		result1 groot.VolumeStats
 		result2 error
 	}
-	WriteMetadataStub        func(logger lager.Logger, bundleID string, data groot.Metadata) error
+	WriteMetadataStub        func(logger lager.Logger, bundleID string, volumeData groot.VolumeMetadata) error
 	writeMetadataMutex       sync.RWMutex
 	writeMetadataArgsForCall []struct {
-		logger   lager.Logger
-		bundleID string
-		data     groot.Metadata
+		logger     lager.Logger
+		bundleID   string
+		volumeData groot.VolumeMetadata
 	}
 	writeMetadataReturns struct {
 		result1 error
@@ -361,18 +361,18 @@ func (fake *FakeDriver) StatsReturnsOnCall(i int, result1 groot.VolumeStats, res
 	}{result1, result2}
 }
 
-func (fake *FakeDriver) WriteMetadata(logger lager.Logger, bundleID string, data groot.Metadata) error {
+func (fake *FakeDriver) WriteMetadata(logger lager.Logger, bundleID string, volumeData groot.VolumeMetadata) error {
 	fake.writeMetadataMutex.Lock()
 	ret, specificReturn := fake.writeMetadataReturnsOnCall[len(fake.writeMetadataArgsForCall)]
 	fake.writeMetadataArgsForCall = append(fake.writeMetadataArgsForCall, struct {
-		logger   lager.Logger
-		bundleID string
-		data     groot.Metadata
-	}{logger, bundleID, data})
-	fake.recordInvocation("WriteMetadata", []interface{}{logger, bundleID, data})
+		logger     lager.Logger
+		bundleID   string
+		volumeData groot.VolumeMetadata
+	}{logger, bundleID, volumeData})
+	fake.recordInvocation("WriteMetadata", []interface{}{logger, bundleID, volumeData})
 	fake.writeMetadataMutex.Unlock()
 	if fake.WriteMetadataStub != nil {
-		return fake.WriteMetadataStub(logger, bundleID, data)
+		return fake.WriteMetadataStub(logger, bundleID, volumeData)
 	}
 	if specificReturn {
 		return ret.result1
@@ -386,10 +386,10 @@ func (fake *FakeDriver) WriteMetadataCallCount() int {
 	return len(fake.writeMetadataArgsForCall)
 }
 
-func (fake *FakeDriver) WriteMetadataArgsForCall(i int) (lager.Logger, string, groot.Metadata) {
+func (fake *FakeDriver) WriteMetadataArgsForCall(i int) (lager.Logger, string, groot.VolumeMetadata) {
 	fake.writeMetadataMutex.RLock()
 	defer fake.writeMetadataMutex.RUnlock()
-	return fake.writeMetadataArgsForCall[i].logger, fake.writeMetadataArgsForCall[i].bundleID, fake.writeMetadataArgsForCall[i].data
+	return fake.writeMetadataArgsForCall[i].logger, fake.writeMetadataArgsForCall[i].bundleID, fake.writeMetadataArgsForCall[i].volumeData
 }
 
 func (fake *FakeDriver) WriteMetadataReturns(result1 error) {

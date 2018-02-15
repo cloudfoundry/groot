@@ -107,7 +107,7 @@ var _ = Describe("Create", func() {
 			Expect(driver.WriteMetadataCallCount()).To(Equal(1))
 			_, id, metadata := driver.WriteMetadataArgsForCall(0)
 			Expect(id).To(Equal("some-handle"))
-			Expect(metadata).To(Equal(groot.Metadata{BaseImageSize: 1000}))
+			Expect(metadata).To(Equal(groot.VolumeMetadata{BaseImageSize: 1000}))
 		})
 
 		Context("exclude image from quota is true", func() {

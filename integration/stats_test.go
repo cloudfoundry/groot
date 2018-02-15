@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -22,10 +21,8 @@ var _ = Describe("stats", func() {
 	)
 
 	BeforeEach(func() {
-		var err error
-		tempDir, err = ioutil.TempDir("", "groot-integration-tests")
-		Expect(err).NotTo(HaveOccurred())
-		rootfsURI = filepath.Join(tempDir, "rootfs.tar")
+		tmpDir = tempDir("", "groot-integration-tests")
+		rootfsURI = filepath.Join(tmpDir, "rootfs.tar")
 
 		logLevel = ""
 		env = []string{}
@@ -34,11 +31,11 @@ var _ = Describe("stats", func() {
 	})
 
 	AfterEach(func() {
-		Expect(os.RemoveAll(tempDir)).To(Succeed())
+		Expect(os.RemoveAll(tmpDir)).To(Succeed())
 	})
 
 	runStatsCmd := func() error {
-		footArgv := []string{"--driver-store", tempDir, "stats", handle}
+		footArgv := []string{"--driver-store", tmpDir, "stats", handle}
 		footCmd := exec.Command(footBinPath, footArgv...)
 		footCmd.Stdout = io.MultiWriter(stdout, GinkgoWriter)
 		footCmd.Stderr = io.MultiWriter(stderr, GinkgoWriter)
