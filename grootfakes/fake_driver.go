@@ -79,6 +79,19 @@ type FakeDriver struct {
 		result1 groot.VolumeStats
 		result2 error
 	}
+	WriteMetadataStub        func(logger lager.Logger, bundleID string, data groot.Metadata) error
+	writeMetadataMutex       sync.RWMutex
+	writeMetadataArgsForCall []struct {
+		logger   lager.Logger
+		bundleID string
+		data     groot.Metadata
+	}
+	writeMetadataReturns struct {
+		result1 error
+	}
+	writeMetadataReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -348,6 +361,56 @@ func (fake *FakeDriver) StatsReturnsOnCall(i int, result1 groot.VolumeStats, res
 	}{result1, result2}
 }
 
+func (fake *FakeDriver) WriteMetadata(logger lager.Logger, bundleID string, data groot.Metadata) error {
+	fake.writeMetadataMutex.Lock()
+	ret, specificReturn := fake.writeMetadataReturnsOnCall[len(fake.writeMetadataArgsForCall)]
+	fake.writeMetadataArgsForCall = append(fake.writeMetadataArgsForCall, struct {
+		logger   lager.Logger
+		bundleID string
+		data     groot.Metadata
+	}{logger, bundleID, data})
+	fake.recordInvocation("WriteMetadata", []interface{}{logger, bundleID, data})
+	fake.writeMetadataMutex.Unlock()
+	if fake.WriteMetadataStub != nil {
+		return fake.WriteMetadataStub(logger, bundleID, data)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fake.writeMetadataReturns.result1
+}
+
+func (fake *FakeDriver) WriteMetadataCallCount() int {
+	fake.writeMetadataMutex.RLock()
+	defer fake.writeMetadataMutex.RUnlock()
+	return len(fake.writeMetadataArgsForCall)
+}
+
+func (fake *FakeDriver) WriteMetadataArgsForCall(i int) (lager.Logger, string, groot.Metadata) {
+	fake.writeMetadataMutex.RLock()
+	defer fake.writeMetadataMutex.RUnlock()
+	return fake.writeMetadataArgsForCall[i].logger, fake.writeMetadataArgsForCall[i].bundleID, fake.writeMetadataArgsForCall[i].data
+}
+
+func (fake *FakeDriver) WriteMetadataReturns(result1 error) {
+	fake.WriteMetadataStub = nil
+	fake.writeMetadataReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeDriver) WriteMetadataReturnsOnCall(i int, result1 error) {
+	fake.WriteMetadataStub = nil
+	if fake.writeMetadataReturnsOnCall == nil {
+		fake.writeMetadataReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.writeMetadataReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeDriver) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -361,6 +424,8 @@ func (fake *FakeDriver) Invocations() map[string][][]interface{} {
 	defer fake.deleteMutex.RUnlock()
 	fake.statsMutex.RLock()
 	defer fake.statsMutex.RUnlock()
+	fake.writeMetadataMutex.RLock()
+	defer fake.writeMetadataMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"time"
 
+	"code.cloudfoundry.org/groot"
 	"code.cloudfoundry.org/groot/integration/cmd/foot/foot"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -19,6 +20,7 @@ var _ = Describe("create", func() {
 		rootfsURI         string
 		handle            = "some-handle"
 		expectedDiskLimit int64
+		imageSize         int64
 		createArgs        []string
 	)
 
@@ -50,7 +52,7 @@ var _ = Describe("create", func() {
 		return footCmd.Run()
 	}
 
-	bundleIsSuccessful := func(handle string) {
+	bundleAndWriteMetadataSuccessful := func(handle string) {
 		It("calls driver.Bundle() with expected args", func() {
 			var unpackArgs foot.UnpackCalls
 			readTestArgsFile(foot.UnpackArgsFileName, &unpackArgs)
@@ -65,9 +67,17 @@ var _ = Describe("create", func() {
 			Expect(bundleArgs[0].LayerIDs).To(ConsistOf(unpackLayerIds))
 			Expect(bundleArgs[0].DiskLimit).To(Equal(expectedDiskLimit))
 		})
+
+		It("calls driver.WriteMetadata() with expected args", func() {
+			var writeMetadataArgs foot.WriteMetadataCalls
+			readTestArgsFile(foot.WriteMetadataArgsFileName, &writeMetadataArgs)
+
+			Expect(writeMetadataArgs[0].ID).To(Equal(handle))
+			Expect(writeMetadataArgs[0].VolumeData).To(Equal(groot.VolumeMetadata{BaseImageSize: imageSize}))
+		})
 	}
 
-	whenBundleIsUnsuccessful := func() {
+	bundleAndWriteMetadataUnsuccessful := func() {
 		Context("when driver.Bundle() returns an error", func() {
 			BeforeEach(func() {
 				env = append(env, "FOOT_BUNDLE_ERROR=true")
@@ -75,6 +85,16 @@ var _ = Describe("create", func() {
 
 			It("prints the error", func() {
 				Expect(stdout.String()).To(ContainSubstring("bundle-err\n"))
+			})
+		})
+
+		Context("when driver.WriteMetadata() returns an error", func() {
+			BeforeEach(func() {
+				env = append(env, "FOOT_WRITE_METADATA_ERROR=true")
+			})
+
+			It("prints the error", func() {
+				Expect(stdout.String()).To(ContainSubstring("write-metadata-err\n"))
 			})
 		})
 	}
@@ -115,7 +135,7 @@ var _ = Describe("create", func() {
 				})
 
 				unpackIsSuccessful(runCreateCmd)
-				bundleIsSuccessful(handle)
+				bundleAndWriteMetadataSuccessful(handle)
 			})
 
 			Context("--disk-limit-size-bytes is given", func() {
@@ -124,7 +144,7 @@ var _ = Describe("create", func() {
 				})
 
 				unpackIsSuccessful(runCreateCmd)
-				bundleIsSuccessful(handle)
+				bundleAndWriteMetadataSuccessful(handle)
 
 				Context("--exclude-image-from-quota is given as well", func() {
 					BeforeEach(func() {
@@ -133,7 +153,7 @@ var _ = Describe("create", func() {
 					})
 
 					unpackIsSuccessful(runCreateCmd)
-					bundleIsSuccessful(handle)
+					bundleAndWriteMetadataSuccessful(handle)
 				})
 			})
 
@@ -165,7 +185,6 @@ var _ = Describe("create", func() {
 		})
 
 		Describe("Remote images", func() {
-			var imageSize int64
 			JustBeforeEach(func() {
 				imageSize = 297
 				rootfsURI = "docker:///cfgarden/three-layers"
@@ -175,7 +194,7 @@ var _ = Describe("create", func() {
 
 			Context("when command succeeds", func() {
 				unpackIsSuccessful(runCreateCmd)
-				bundleIsSuccessful(handle)
+				bundleAndWriteMetadataSuccessful(handle)
 			})
 
 			Context("--disk-limit-size-bytes is given", func() {
@@ -187,7 +206,7 @@ var _ = Describe("create", func() {
 				})
 
 				unpackIsSuccessful(runCreateCmd)
-				bundleIsSuccessful(handle)
+				bundleAndWriteMetadataSuccessful(handle)
 
 				Context("--exclude-image-from-quota is given as well", func() {
 					BeforeEach(func() {
@@ -198,7 +217,7 @@ var _ = Describe("create", func() {
 					})
 
 					unpackIsSuccessful(runCreateCmd)
-					bundleIsSuccessful(handle)
+					bundleAndWriteMetadataSuccessful(handle)
 				})
 			})
 
@@ -232,7 +251,7 @@ var _ = Describe("create", func() {
 			})
 
 			whenUnpackIsUnsuccessful(runCreateCmd)
-			whenBundleIsUnsuccessful()
+			bundleAndWriteMetadataUnsuccessful()
 
 			Context("when the rootfs URI is not a file", func() {
 				BeforeEach(func() {
@@ -281,7 +300,7 @@ var _ = Describe("create", func() {
 			})
 
 			whenUnpackIsUnsuccessful(runCreateCmd)
-			whenBundleIsUnsuccessful()
+			bundleAndWriteMetadataUnsuccessful()
 		})
 	})
 })

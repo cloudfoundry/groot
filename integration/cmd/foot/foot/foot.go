@@ -90,12 +90,27 @@ func (t *Foot) Stats(logger lager.Logger, id string) (groot.VolumeStats, error) 
 	return ReturnedVolumeStats, nil
 }
 
+func (t *Foot) WriteMetadata(logger lager.Logger, id string, volumeData groot.VolumeMetadata) error {
+	logger.Info("write-metadata-info")
+	logger.Debug("write-metadata-debug")
+
+	if _, exists := os.LookupEnv("FOOT_WRITE_METADATA_ERROR"); exists {
+		return errors.New("write-metadata-err")
+	}
+
+	saveObject([]interface{}{
+		WriteMetadataArgs{ID: id, VolumeData: volumeData},
+	}, t.pathTo(WriteMetadataArgsFileName))
+	return nil
+}
+
 const (
-	UnpackArgsFileName = "unpack-args"
-	BundleArgsFileName = "bundle-args"
-	ExistsArgsFileName = "exists-args"
-	DeleteArgsFileName = "delete-args"
-	StatsArgsFileName  = "stats-args"
+	UnpackArgsFileName        = "unpack-args"
+	BundleArgsFileName        = "bundle-args"
+	ExistsArgsFileName        = "exists-args"
+	DeleteArgsFileName        = "delete-args"
+	StatsArgsFileName         = "stats-args"
+	WriteMetadataArgsFileName = "write-metadata-args"
 )
 
 var (
@@ -133,6 +148,12 @@ type BundleArgs struct {
 type StatsCalls []StatsArgs
 type StatsArgs struct {
 	ID string
+}
+
+type WriteMetadataCalls []WriteMetadataArgs
+type WriteMetadataArgs struct {
+	ID         string
+	VolumeData groot.VolumeMetadata
 }
 
 func (t *Foot) pathTo(filename string) string {
