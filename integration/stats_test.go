@@ -1,60 +1,43 @@
 package integration_test
 
 import (
-	"bytes"
 	"encoding/json"
-	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 
 	"code.cloudfoundry.org/groot"
 	"code.cloudfoundry.org/groot/integration/cmd/foot/foot"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
+	"github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("stats", func() {
-	var (
-		rootfsURI string
-		handle    = "some-handle"
-	)
-
 	BeforeEach(func() {
 		tmpDir = tempDir("", "groot-integration-tests")
-		rootfsURI = filepath.Join(tmpDir, "rootfs.tar")
-
-		logLevel = ""
 		env = []string{}
-		stdout = new(bytes.Buffer)
-		stderr = new(bytes.Buffer)
 	})
 
 	AfterEach(func() {
 		Expect(os.RemoveAll(tmpDir)).To(Succeed())
 	})
 
-	runStatsCmd := func() error {
-		footArgv := []string{"--driver-store", tmpDir, "stats", handle}
-		footCmd := exec.Command(footBinPath, footArgv...)
-		footCmd.Stdout = io.MultiWriter(stdout, GinkgoWriter)
-		footCmd.Stderr = io.MultiWriter(stderr, GinkgoWriter)
-		footCmd.Env = append(os.Environ(), env...)
-		return footCmd.Run()
-	}
-
 	Describe("success", func() {
 		It("calls driver.Stats() with expected args", func() {
-			Expect(runStatsCmd()).To(Succeed())
+			Expect(runFoot("", tmpDir, "stats", "some-handle")).To(gexec.Exit(0))
+
 			var statsArgs foot.StatsCalls
-			readTestArgsFile(foot.StatsArgsFileName, &statsArgs)
-			Expect(statsArgs[0].ID).To(Equal(handle))
+			unmarshalFile(filepath.Join(tmpDir, foot.StatsArgsFileName), &statsArgs)
+			Expect(statsArgs[0].ID).To(Equal("some-handle"))
 		})
 
 		It("returns the stats json on stdout", func() {
-			Expect(runStatsCmd()).To(Succeed())
+			session := runFoot("", tmpDir, "stats", "some-handle")
+			Expect(session).To(gexec.Exit(0))
+
 			var stats groot.VolumeStats
-			Expect(json.Unmarshal(stdout.Bytes(), &stats)).To(Succeed())
+			Expect(json.Unmarshal(session.Out.Contents(), &stats)).To(Succeed())
 			Expect(stats).To(Equal(foot.ReturnedVolumeStats))
 		})
 	})
@@ -66,8 +49,9 @@ var _ = Describe("stats", func() {
 			})
 
 			It("prints the error", func() {
-				Expect(runStatsCmd()).NotTo(Succeed())
-				Expect(stdout.String()).To(ContainSubstring("stats-err\n"))
+				session := runFoot("", tmpDir, "stats", "some-handle")
+				Expect(session).To(gexec.Exit(1))
+				Expect(session.Out).To(gbytes.Say("stats-err"))
 			})
 		})
 	})

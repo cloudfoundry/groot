@@ -55,10 +55,10 @@ var _ = Describe("create", func() {
 	bundleAndWriteMetadataSuccessful := func(handle string) {
 		It("calls driver.Bundle() with expected args", func() {
 			var unpackArgs foot.UnpackCalls
-			readTestArgsFile(foot.UnpackArgsFileName, &unpackArgs)
+			unmarshalFile(filepath.Join(tmpDir, foot.UnpackArgsFileName), &unpackArgs)
 
 			var bundleArgs foot.BundleCalls
-			readTestArgsFile(foot.BundleArgsFileName, &bundleArgs)
+			unmarshalFile(filepath.Join(tmpDir, foot.BundleArgsFileName), &bundleArgs)
 			unpackLayerIds := []string{}
 			for _, call := range unpackArgs {
 				unpackLayerIds = append(unpackLayerIds, call.ID)
@@ -70,7 +70,7 @@ var _ = Describe("create", func() {
 
 		It("calls driver.WriteMetadata() with expected args", func() {
 			var writeMetadataArgs foot.WriteMetadataCalls
-			readTestArgsFile(foot.WriteMetadataArgsFileName, &writeMetadataArgs)
+			unmarshalFile(filepath.Join(tmpDir, foot.WriteMetadataArgsFileName), &writeMetadataArgs)
 
 			Expect(writeMetadataArgs[0].ID).To(Equal(handle))
 			Expect(writeMetadataArgs[0].VolumeData).To(Equal(groot.VolumeMetadata{BaseImageSize: imageSize}))
@@ -158,7 +158,7 @@ var _ = Describe("create", func() {
 
 			It("calls driver.Unpack() with the correct stream", func() {
 				var args foot.UnpackCalls
-				readTestArgsFile(foot.UnpackArgsFileName, &args)
+				unmarshalFile(filepath.Join(tmpDir, foot.UnpackArgsFileName), &args)
 				Expect(string(args[0].LayerTarContents)).To(Equal("a-rootfs"))
 			})
 
@@ -166,7 +166,7 @@ var _ = Describe("create", func() {
 				Context("when the rootfs file timestamp has changed", func() {
 					It("generates a different layer ID", func() {
 						var unpackArgs foot.UnpackCalls
-						readTestArgsFile(foot.UnpackArgsFileName, &unpackArgs)
+						unmarshalFile(filepath.Join(tmpDir, foot.UnpackArgsFileName), &unpackArgs)
 						firstInvocationLayerID := unpackArgs[0].ID
 
 						now := time.Now()
@@ -174,7 +174,7 @@ var _ = Describe("create", func() {
 
 						Expect(runCreateCmd()).To(Succeed())
 
-						readTestArgsFile(foot.UnpackArgsFileName, &unpackArgs)
+						unmarshalFile(filepath.Join(tmpDir, foot.UnpackArgsFileName), &unpackArgs)
 						secondInvocationLayerID := unpackArgs[1].ID
 
 						Expect(secondInvocationLayerID).NotTo(Equal(firstInvocationLayerID))
@@ -223,7 +223,7 @@ var _ = Describe("create", func() {
 			Context("when the image has multiple layers", func() {
 				It("correctly passes parent IDs to each driver.Unpack() call", func() {
 					var args foot.UnpackCalls
-					readTestArgsFile(foot.UnpackArgsFileName, &args)
+					unmarshalFile(filepath.Join(tmpDir, foot.UnpackArgsFileName), &args)
 
 					chainIDs := []string{}
 					for _, a := range args {
