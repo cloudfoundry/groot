@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -17,37 +16,33 @@ import (
 var _ = Describe("groot", func() {
 	Describe("delete", func() {
 		var (
-			handle  = "some-handle"
-			env     []string
-			tempDir string
-			stdout  *bytes.Buffer
+			handle = "some-handle"
+			env    []string
+			stdout *bytes.Buffer
 		)
 
 		argFilePath := func(filename string) string {
-			return filepath.Join(tempDir, filename)
+			return filepath.Join(tmpDir, filename)
 		}
 
 		readTestArgsFile := func(filename string, ptr interface{}) {
-			content, err := ioutil.ReadFile(argFilePath(filename))
-			Expect(err).NotTo(HaveOccurred())
+			content := readFile(argFilePath(filename))
 			Expect(json.Unmarshal(content, ptr)).To(Succeed())
 		}
 
 		BeforeEach(func() {
-			var err error
-			tempDir, err = ioutil.TempDir("", "groot-integration-tests")
-			Expect(err).NotTo(HaveOccurred())
+			tmpDir = tempDir("", "groot-integration-tests")
 
 			env = []string{}
 			stdout = new(bytes.Buffer)
 		})
 
 		AfterEach(func() {
-			Expect(os.RemoveAll(tempDir)).To(Succeed())
+			Expect(os.RemoveAll(tmpDir)).To(Succeed())
 		})
 
 		runFootCmd := func() error {
-			footArgv := []string{"--driver-store", tempDir, "delete", handle}
+			footArgv := []string{"--driver-store", tmpDir, "delete", handle}
 			footCmd := exec.Command(footBinPath, footArgv...)
 			footCmd.Stdout = io.MultiWriter(stdout, GinkgoWriter)
 			footCmd.Env = append(os.Environ(), env...)

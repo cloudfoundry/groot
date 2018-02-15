@@ -3,7 +3,6 @@ package integration_test
 import (
 	"bytes"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -19,11 +18,9 @@ var _ = Describe("pull", func() {
 	var rootfsURI string
 
 	BeforeEach(func() {
-		var err error
-		tempDir, err = ioutil.TempDir("", "groot-integration-tests")
-		Expect(err).NotTo(HaveOccurred())
-		configFilePath = filepath.Join(tempDir, "groot-config.yml")
-		rootfsURI = filepath.Join(tempDir, "rootfs.tar")
+		tmpDir = tempDir("", "groot-integration-tests")
+		configFilePath = filepath.Join(tmpDir, "groot-config.yml")
+		rootfsURI = filepath.Join(tmpDir, "rootfs.tar")
 
 		logLevel = ""
 		env = []string{}
@@ -32,11 +29,11 @@ var _ = Describe("pull", func() {
 	})
 
 	AfterEach(func() {
-		Expect(os.RemoveAll(tempDir)).To(Succeed())
+		Expect(os.RemoveAll(tmpDir)).To(Succeed())
 	})
 
 	runPullCmd := func() error {
-		footArgv := []string{"--config", configFilePath, "--driver-store", tempDir, "pull", rootfsURI}
+		footArgv := []string{"--config", configFilePath, "--driver-store", tmpDir, "pull", rootfsURI}
 		footCmd := exec.Command(footBinPath, footArgv...)
 		footCmd.Stdout = io.MultiWriter(stdout, GinkgoWriter)
 		footCmd.Stderr = io.MultiWriter(stderr, GinkgoWriter)

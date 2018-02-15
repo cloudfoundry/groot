@@ -21,9 +21,11 @@ import (
 
 var _ = Describe("Create", func() {
 	var (
-		driver            *grootfakes.FakeDriver
-		imagePuller       *grootfakes.FakeImagePuller
-		driverRuntimeSpec = specs.Spec{Version: "some-version"}
+		driver                *grootfakes.FakeDriver
+		imagePuller           *grootfakes.FakeImagePuller
+		driverRuntimeSpec     = specs.Spec{Version: "some-version"}
+		excludeImageFromQuota bool
+		diskLimit             int64
 
 		logger *lagertest.TestLogger
 		g      *groot.Groot
@@ -44,7 +46,8 @@ var _ = Describe("Create", func() {
 		imagePuller = new(grootfakes.FakeImagePuller)
 
 		imagePuller.PullReturns(imagepuller.Image{
-			ChainIDs: []string{"checksum"},
+			ChainIDs:      []string{"checksum"},
+			BaseImageSize: 1000,
 		}, nil)
 
 		logger = lagertest.NewTestLogger("groot")
@@ -53,6 +56,9 @@ var _ = Describe("Create", func() {
 			Logger:      logger,
 			ImagePuller: imagePuller,
 		}
+
+		diskLimit = 5000
+		excludeImageFromQuota = true
 	})
 
 	AfterEach(func() {
@@ -76,7 +82,7 @@ var _ = Describe("Create", func() {
 
 		JustBeforeEach(func() {
 			var err error
-			returnedRuntimeSpec, err = g.Create("some-handle", rootfsSource)
+			returnedRuntimeSpec, err = g.Create("some-handle", rootfsSource, diskLimit, excludeImageFromQuota)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -90,11 +96,43 @@ var _ = Describe("Create", func() {
 			Expect(returnedRuntimeSpec).To(Equal(driverRuntimeSpec))
 		})
 
-		It("calls driver.Bundle with the expected args", func() {
+		It("calls driver.Bundle with the handle and layer ids", func() {
 			Expect(driver.BundleCallCount()).To(Equal(1))
-			_, id, layerIDs := driver.BundleArgsForCall(0)
+			_, id, layerIDs, _ := driver.BundleArgsForCall(0)
 			Expect(id).To(Equal("some-handle"))
 			Expect(layerIDs).To(Equal([]string{"checksum"}))
+		})
+
+		Context("exclude image from quota is true", func() {
+			It("passes the disk limit directly to driver.Bundle", func() {
+				Expect(driver.BundleCallCount()).To(Equal(1))
+				_, _, _, diskLimit := driver.BundleArgsForCall(0)
+				Expect(diskLimit).To(Equal(int64(5000)))
+			})
+		})
+
+		Context("exclude image from quota is false", func() {
+			BeforeEach(func() {
+				excludeImageFromQuota = false
+			})
+
+			It("subtracts the image size from the disk limit when calling driver.Bundle", func() {
+				Expect(driver.BundleCallCount()).To(Equal(1))
+				_, _, _, diskLimit := driver.BundleArgsForCall(0)
+				Expect(diskLimit).To(Equal(int64(4000)))
+			})
+
+			Context("the disk limit is zero", func() {
+				BeforeEach(func() {
+					diskLimit = 0
+				})
+
+				It("passes the disk limit directly to driver.Bundle", func() {
+					Expect(driver.BundleCallCount()).To(Equal(1))
+					_, _, _, diskLimit := driver.BundleArgsForCall(0)
+					Expect(diskLimit).To(Equal(int64(0)))
+				})
+			})
 		})
 
 		Context("when the layer already exists", func() {
@@ -114,7 +152,7 @@ var _ = Describe("Create", func() {
 		)
 
 		JustBeforeEach(func() {
-			_, createErr = g.Create("some-handle", rootfsSource)
+			_, createErr = g.Create("some-handle", rootfsSource, diskLimit, excludeImageFromQuota)
 		})
 
 		Context("when image puller returns an error", func() {
@@ -124,6 +162,38 @@ var _ = Describe("Create", func() {
 
 			It("returns the error", func() {
 				Expect(createErr).To(MatchError(ContainSubstring("pull-failed")))
+			})
+		})
+
+		Context("the disk limit is negative", func() {
+			BeforeEach(func() {
+				diskLimit = -500
+			})
+
+			It("returns an error", func() {
+				Expect(createErr).To(MatchError(ContainSubstring("invalid disk limit: -500")))
+			})
+		})
+
+		Context("the disk limit is smaller than the base image size", func() {
+			BeforeEach(func() {
+				excludeImageFromQuota = false
+				diskLimit = 500
+			})
+
+			It("returns an error", func() {
+				Expect(createErr).To(MatchError(ContainSubstring("disk limit 500 must be larger than image size 1000")))
+			})
+		})
+
+		Context("the disk limit is equal to the base image size", func() {
+			BeforeEach(func() {
+				excludeImageFromQuota = false
+				diskLimit = 1000
+			})
+
+			It("returns an error", func() {
+				Expect(createErr).To(MatchError(ContainSubstring("disk limit 1000 must be larger than image size 1000")))
 			})
 		})
 

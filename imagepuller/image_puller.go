@@ -42,8 +42,9 @@ type VolumeDriver interface {
 }
 
 type Image struct {
-	Image    imgspec.Image
-	ChainIDs []string
+	Image         imgspec.Image
+	ChainIDs      []string
+	BaseImageSize int64
 }
 
 type ImageSpec struct {
@@ -86,8 +87,9 @@ func (p *ImagePuller) Pull(logger lager.Logger, spec ImageSpec) (Image, error) {
 	chainIDs := p.chainIDs(imageInfo.LayerInfos)
 
 	image := Image{
-		Image:    imageInfo.Config,
-		ChainIDs: chainIDs,
+		Image:         imageInfo.Config,
+		ChainIDs:      chainIDs,
+		BaseImageSize: p.layersSize(imageInfo.LayerInfos),
 	}
 	return image, nil
 }

@@ -32,7 +32,7 @@ func (t *Foot) Unpack(logger lager.Logger, id string, parentIDs []string, layerT
 	return nil
 }
 
-func (t *Foot) Bundle(logger lager.Logger, id string, layerIDs []string) (specs.Spec, error) {
+func (t *Foot) Bundle(logger lager.Logger, id string, layerIDs []string, diskLimit int64) (specs.Spec, error) {
 	logger.Info("bundle-info")
 	logger.Debug("bundle-debug")
 
@@ -41,7 +41,7 @@ func (t *Foot) Bundle(logger lager.Logger, id string, layerIDs []string) (specs.
 	}
 
 	saveObject([]interface{}{
-		BundleArgs{ID: id, LayerIDs: layerIDs},
+		BundleArgs{ID: id, LayerIDs: layerIDs, DiskLimit: diskLimit},
 	}, t.pathTo(BundleArgsFileName))
 	return BundleRuntimeSpec, nil
 }
@@ -105,8 +105,9 @@ type UnpackArgs struct {
 
 type BundleCalls []BundleArgs
 type BundleArgs struct {
-	ID       string
-	LayerIDs []string
+	ID        string
+	LayerIDs  []string
+	DiskLimit int64
 }
 
 func (t *Foot) pathTo(filename string) string {

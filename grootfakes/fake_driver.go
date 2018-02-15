@@ -25,12 +25,13 @@ type FakeDriver struct {
 	unpackReturnsOnCall map[int]struct {
 		result1 error
 	}
-	BundleStub        func(logger lager.Logger, bundleID string, layerIDs []string) (runspec.Spec, error)
+	BundleStub        func(logger lager.Logger, bundleID string, layerIDs []string, diskLimit int64) (runspec.Spec, error)
 	bundleMutex       sync.RWMutex
 	bundleArgsForCall []struct {
-		logger   lager.Logger
-		bundleID string
-		layerIDs []string
+		logger    lager.Logger
+		bundleID  string
+		layerIDs  []string
+		diskLimit int64
 	}
 	bundleReturns struct {
 		result1 runspec.Spec
@@ -124,7 +125,7 @@ func (fake *FakeDriver) UnpackReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeDriver) Bundle(logger lager.Logger, bundleID string, layerIDs []string) (runspec.Spec, error) {
+func (fake *FakeDriver) Bundle(logger lager.Logger, bundleID string, layerIDs []string, diskLimit int64) (runspec.Spec, error) {
 	var layerIDsCopy []string
 	if layerIDs != nil {
 		layerIDsCopy = make([]string, len(layerIDs))
@@ -133,14 +134,15 @@ func (fake *FakeDriver) Bundle(logger lager.Logger, bundleID string, layerIDs []
 	fake.bundleMutex.Lock()
 	ret, specificReturn := fake.bundleReturnsOnCall[len(fake.bundleArgsForCall)]
 	fake.bundleArgsForCall = append(fake.bundleArgsForCall, struct {
-		logger   lager.Logger
-		bundleID string
-		layerIDs []string
-	}{logger, bundleID, layerIDsCopy})
-	fake.recordInvocation("Bundle", []interface{}{logger, bundleID, layerIDsCopy})
+		logger    lager.Logger
+		bundleID  string
+		layerIDs  []string
+		diskLimit int64
+	}{logger, bundleID, layerIDsCopy, diskLimit})
+	fake.recordInvocation("Bundle", []interface{}{logger, bundleID, layerIDsCopy, diskLimit})
 	fake.bundleMutex.Unlock()
 	if fake.BundleStub != nil {
-		return fake.BundleStub(logger, bundleID, layerIDs)
+		return fake.BundleStub(logger, bundleID, layerIDs, diskLimit)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
@@ -154,10 +156,10 @@ func (fake *FakeDriver) BundleCallCount() int {
 	return len(fake.bundleArgsForCall)
 }
 
-func (fake *FakeDriver) BundleArgsForCall(i int) (lager.Logger, string, []string) {
+func (fake *FakeDriver) BundleArgsForCall(i int) (lager.Logger, string, []string, int64) {
 	fake.bundleMutex.RLock()
 	defer fake.bundleMutex.RUnlock()
-	return fake.bundleArgsForCall[i].logger, fake.bundleArgsForCall[i].bundleID, fake.bundleArgsForCall[i].layerIDs
+	return fake.bundleArgsForCall[i].logger, fake.bundleArgsForCall[i].bundleID, fake.bundleArgsForCall[i].layerIDs, fake.bundleArgsForCall[i].diskLimit
 }
 
 func (fake *FakeDriver) BundleReturns(result1 runspec.Spec, result2 error) {

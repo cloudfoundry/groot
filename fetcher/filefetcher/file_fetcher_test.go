@@ -97,6 +97,7 @@ var _ = Describe("File Fetcher", func() {
 			Expect(strings.EqualFold(layers[0].BlobID, imagePath)).To(BeTrue())
 			Expect(layers[0].ChainID).NotTo(BeEmpty())
 			Expect(layers[0].ParentChainID).To(BeEmpty())
+			Expect(layers[0].Size).To(Equal(int64(len("hello-world"))))
 
 			Expect(imageInfo.Config).To(Equal(v1.Image{}))
 		})
