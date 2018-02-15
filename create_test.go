@@ -103,6 +103,13 @@ var _ = Describe("Create", func() {
 			Expect(layerIDs).To(Equal([]string{"checksum"}))
 		})
 
+		It("calls driver.WriteMetadata with the handle and metadata", func() {
+			Expect(driver.WriteMetadataCallCount()).To(Equal(1))
+			_, id, metadata := driver.WriteMetadataArgsForCall(0)
+			Expect(id).To(Equal("some-handle"))
+			Expect(metadata).To(Equal(groot.VolumeMetadata{BaseImageSize: 1000}))
+		})
+
 		Context("exclude image from quota is true", func() {
 			It("passes the disk limit directly to driver.Bundle", func() {
 				Expect(driver.BundleCallCount()).To(Equal(1))

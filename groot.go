@@ -18,6 +18,19 @@ import (
 	"github.com/urfave/cli"
 )
 
+type DiskUsage struct {
+	TotalBytesUsed     int64 `json:"total_bytes_used"`
+	ExclusiveBytesUsed int64 `json:"exclusive_bytes_used"`
+}
+
+type VolumeStats struct {
+	DiskUsage DiskUsage `json:"disk_usage"`
+}
+
+type VolumeMetadata struct {
+	BaseImageSize int64 `json:"base_image_size"`
+}
+
 // Driver should implement the filesystem interaction
 //go:generate counterfeiter . Driver
 type Driver interface {
@@ -25,6 +38,8 @@ type Driver interface {
 	Bundle(logger lager.Logger, bundleID string, layerIDs []string, diskLimit int64) (runspec.Spec, error)
 	Exists(logger lager.Logger, layerID string) bool
 	Delete(logger lager.Logger, bundleID string) error
+	Stats(logger lager.Logger, bundleID string) (VolumeStats, error)
+	WriteMetadata(logger lager.Logger, bundleID string, volumeData VolumeMetadata) error
 }
 
 // ImagePuller should be able to download and store a remote (or local) image
@@ -99,6 +114,17 @@ func Run(driver Driver, argv []string, driverFlags []cli.Flag) {
 			Action: func(ctx *cli.Context) error {
 				handle := ctx.Args()[0]
 				return g.Delete(handle)
+			},
+		},
+		{
+			Name: "stats",
+			Action: func(ctx *cli.Context) error {
+				handle := ctx.Args()[0]
+				stats, err := g.Stats(handle)
+				if err != nil {
+					return err
+				}
+				return json.NewEncoder(os.Stdout).Encode(stats)
 			},
 		},
 	}
