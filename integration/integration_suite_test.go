@@ -19,7 +19,7 @@ import (
 
 var (
 	footBinPath          string
-	tempDir              string
+	tmpDir               string
 	env                  []string
 	logLevel             string
 	configFilePath       string
@@ -49,13 +49,12 @@ func TestIntegration(t *testing.T) {
 }
 
 func readTestArgsFile(filename string, ptr interface{}) {
-	content, err := ioutil.ReadFile(argFilePath(filename))
-	Expect(err).NotTo(HaveOccurred())
+	content := readFile(argFilePath(filename))
 	Expect(json.Unmarshal(content, ptr)).To(Succeed())
 }
 
 func argFilePath(filename string) string {
-	return filepath.Join(tempDir, filename)
+	return filepath.Join(tmpDir, filename)
 }
 
 func unpackIsSuccessful(runFootCmd func() error) {
@@ -182,4 +181,16 @@ func whenUnpackIsUnsuccessful(runFootCmd func() error) {
 
 func writeFile(path, content string) {
 	Expect(ioutil.WriteFile(path, []byte(content), 0600)).To(Succeed())
+}
+
+func tempDir(dir, prefix string) string {
+	name, err := ioutil.TempDir(dir, prefix)
+	Expect(err).NotTo(HaveOccurred())
+	return name
+}
+
+func readFile(filename string) []byte {
+	content, err := ioutil.ReadFile(filename)
+	Expect(err).NotTo(HaveOccurred())
+	return content
 }
