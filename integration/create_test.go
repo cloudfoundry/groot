@@ -335,6 +335,7 @@ var _ = Describe("create", func() {
 			})
 		})
 
+		// TODO: especially for remote images
 		Context("when the image has multiple layers", func() {
 			It("correctly passes parent IDs to each driver.Unpack() call", func() {
 				var args foot.UnpackCalls
@@ -350,6 +351,36 @@ var _ = Describe("create", func() {
 	})
 
 	Describe("failure", func() {
+		Context("--disk-limit-size-bytes is negative", func() {
+			BeforeEach(func() {
+				createOptions = []string{"--disk-limit-size-bytes", "-500", "--exclude-image-from-quota"}
+			})
+
+			It("prints an error", func() {
+				Expect(footStdout).To(ContainSubstring("invalid disk limit: -500"))
+			})
+		})
+
+		Context("--disk-limit-size-bytes is less than the image size", func() {
+			BeforeEach(func() {
+				createOptions = []string{"--disk-limit-size-bytes", "5"}
+			})
+
+			It("prints an error", func() {
+				Expect(footStdout).To(ContainSubstring("pulling image: layers exceed disk quota 8/5 bytes"))
+			})
+		})
+
+		Context("--disk-limit-size-bytes is exactly the image size", func() {
+			BeforeEach(func() {
+				createOptions = []string{"--disk-limit-size-bytes", "8"}
+			})
+
+			It("prints an error", func() {
+				Expect(footStdout).To(ContainSubstring("disk limit 8 must be larger than image size 8"))
+			})
+		})
+
 		Describe("Local Images", func() {
 			Context("when driver.Unpack() returns an error", func() {
 				BeforeEach(func() {
@@ -411,6 +442,7 @@ var _ = Describe("create", func() {
 				})
 			})
 
+			//TODO: especially for local images
 			Context("when the rootfs URI is not a file", func() {
 				BeforeEach(func() {
 					Expect(os.Remove(rootfsURI)).To(Succeed())
@@ -421,35 +453,6 @@ var _ = Describe("create", func() {
 				})
 			})
 
-			Context("--disk-limit-size-bytes is negative", func() {
-				BeforeEach(func() {
-					createOptions = []string{"--disk-limit-size-bytes", "-500", "--exclude-image-from-quota"}
-				})
-
-				It("prints an error", func() {
-					Expect(footStdout).To(ContainSubstring("invalid disk limit: -500"))
-				})
-			})
-
-			Context("--disk-limit-size-bytes is less than the image size", func() {
-				BeforeEach(func() {
-					createOptions = []string{"--disk-limit-size-bytes", "5"}
-				})
-
-				It("prints an error", func() {
-					Expect(footStdout).To(ContainSubstring("pulling image: layers exceed disk quota 8/5 bytes"))
-				})
-			})
-
-			Context("--disk-limit-size-bytes is exactly the image size", func() {
-				BeforeEach(func() {
-					createOptions = []string{"--disk-limit-size-bytes", "8"}
-				})
-
-				It("prints an error", func() {
-					Expect(footStdout).To(ContainSubstring("disk limit 8 must be larger than image size 8"))
-				})
-			})
 		})
 
 		Describe("Remote Images", func() {
