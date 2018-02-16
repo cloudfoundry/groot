@@ -7,8 +7,6 @@ import (
 	"code.cloudfoundry.org/groot/integration/cmd/foot/foot"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gbytes"
-	"github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("groot", func() {
@@ -22,7 +20,8 @@ var _ = Describe("groot", func() {
 		})
 
 		It("calls driver.Delete() with the expected args", func() {
-			Expect(runFoot("", tmpDir, "delete", "some-handle")).To(gexec.Exit(0))
+			_, err := runFoot("", tmpDir, "delete", "some-handle")
+			Expect(err).NotTo(HaveOccurred())
 
 			var args foot.DeleteCalls
 			unmarshalFile(filepath.Join(tmpDir, foot.DeleteArgsFileName), &args)
@@ -35,8 +34,9 @@ var _ = Describe("groot", func() {
 			})
 
 			It("fails", func() {
-				session := runFoot("", tmpDir, "delete", "some-handle")
-				Expect(session.Out).To(gbytes.Say("delete-err"))
+				stdout, err := runFoot("", tmpDir, "delete", "some-handle")
+				Expect(err).To(HaveOccurred())
+				Expect(stdout).To(ContainSubstring("delete-err"))
 			})
 		})
 	})

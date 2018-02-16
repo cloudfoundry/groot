@@ -3,10 +3,10 @@ package integration_test
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -66,12 +66,15 @@ func unmarshalFile(filename string, data interface{}) {
 	Expect(json.Unmarshal(content, data)).To(Succeed())
 }
 
-func runFoot(configFilePath, driverStore string, args ...string) *gexec.Session {
+func runFoot(configFilePath, driverStore string, args ...string) (string, error) {
 	footCmd := exec.Command(footBinPath, "--config", configFilePath, "--driver-store", driverStore)
 	footCmd.Args = append(footCmd.Args, args...)
 	footCmd.Env = append(os.Environ(), env...)
-	sess, err := gexec.Start(footCmd, GinkgoWriter, GinkgoWriter)
-	Expect(err).NotTo(HaveOccurred())
 
-	return sess.Wait(5 * time.Second)
+	var stdout bytes.Buffer
+	footCmd.Stdout = io.MultiWriter(&stdout, GinkgoWriter)
+	footCmd.Stderr = GinkgoWriter
+
+	err := footCmd.Run()
+	return stdout.String(), err
 }

@@ -9,8 +9,6 @@ import (
 	"code.cloudfoundry.org/groot/integration/cmd/foot/foot"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gbytes"
-	"github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("stats", func() {
@@ -25,7 +23,8 @@ var _ = Describe("stats", func() {
 
 	Describe("success", func() {
 		It("calls driver.Stats() with expected args", func() {
-			Expect(runFoot("", tmpDir, "stats", "some-handle")).To(gexec.Exit(0))
+			_, err := runFoot("", tmpDir, "stats", "some-handle")
+			Expect(err).NotTo(HaveOccurred())
 
 			var statsArgs foot.StatsCalls
 			unmarshalFile(filepath.Join(tmpDir, foot.StatsArgsFileName), &statsArgs)
@@ -33,11 +32,11 @@ var _ = Describe("stats", func() {
 		})
 
 		It("returns the stats json on stdout", func() {
-			session := runFoot("", tmpDir, "stats", "some-handle")
-			Expect(session).To(gexec.Exit(0))
+			stdout, err := runFoot("", tmpDir, "stats", "some-handle")
+			Expect(err).NotTo(HaveOccurred())
 
 			var stats groot.VolumeStats
-			Expect(json.Unmarshal(session.Out.Contents(), &stats)).To(Succeed())
+			Expect(json.Unmarshal([]byte(stdout), &stats)).To(Succeed())
 			Expect(stats).To(Equal(foot.ReturnedVolumeStats))
 		})
 	})
@@ -49,9 +48,9 @@ var _ = Describe("stats", func() {
 			})
 
 			It("prints the error", func() {
-				session := runFoot("", tmpDir, "stats", "some-handle")
-				Expect(session).To(gexec.Exit(1))
-				Expect(session.Out).To(gbytes.Say("stats-err"))
+				stdout, err := runFoot("", tmpDir, "stats", "some-handle")
+				Expect(err).To(HaveOccurred())
+				Expect(stdout).To(ContainSubstring("stats-err"))
 			})
 		})
 	})
