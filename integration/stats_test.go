@@ -13,26 +13,26 @@ import (
 
 var _ = Describe("stats", func() {
 	BeforeEach(func() {
-		tmpDir = tempDir("", "groot-integration-tests")
+		driverStoreDir = tempDir("", "groot-integration-tests")
 		env = []string{}
 	})
 
 	AfterEach(func() {
-		Expect(os.RemoveAll(tmpDir)).To(Succeed())
+		Expect(os.RemoveAll(driverStoreDir)).To(Succeed())
 	})
 
 	Describe("success", func() {
 		It("calls driver.Stats() with expected args", func() {
-			_, err := runFoot("", tmpDir, "stats", "some-handle")
+			_, err := runFoot("", driverStoreDir, "stats", "some-handle")
 			Expect(err).NotTo(HaveOccurred())
 
 			var statsArgs foot.StatsCalls
-			unmarshalFile(filepath.Join(tmpDir, foot.StatsArgsFileName), &statsArgs)
+			unmarshalFile(filepath.Join(driverStoreDir, foot.StatsArgsFileName), &statsArgs)
 			Expect(statsArgs[0].ID).To(Equal("some-handle"))
 		})
 
 		It("returns the stats json on stdout", func() {
-			stdout, err := runFoot("", tmpDir, "stats", "some-handle")
+			stdout, err := runFoot("", driverStoreDir, "stats", "some-handle")
 			Expect(err).NotTo(HaveOccurred())
 
 			var stats groot.VolumeStats
@@ -48,7 +48,7 @@ var _ = Describe("stats", func() {
 			})
 
 			It("prints the error", func() {
-				stdout, err := runFoot("", tmpDir, "stats", "some-handle")
+				stdout, err := runFoot("", driverStoreDir, "stats", "some-handle")
 				Expect(err).To(HaveOccurred())
 				Expect(stdout).To(ContainSubstring("stats-err"))
 			})

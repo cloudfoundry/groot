@@ -17,11 +17,9 @@ import (
 
 var (
 	footBinPath          string
-	tmpDir               string
+	driverStoreDir       string
 	env                  []string
 	configFilePath       string
-	stdout               *bytes.Buffer
-	stderr               *bytes.Buffer
 	notFoundRuntimeError = map[string]string{
 		"linux":   "no such file or directory",
 		"windows": "The system cannot find the file specified.",

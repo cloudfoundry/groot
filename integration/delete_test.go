@@ -12,19 +12,19 @@ import (
 var _ = Describe("groot", func() {
 	Describe("delete", func() {
 		BeforeEach(func() {
-			tmpDir = tempDir("", "groot-integration-tests")
+			driverStoreDir = tempDir("", "groot-integration-tests")
 		})
 
 		AfterEach(func() {
-			Expect(os.RemoveAll(tmpDir)).To(Succeed())
+			Expect(os.RemoveAll(driverStoreDir)).To(Succeed())
 		})
 
 		It("calls driver.Delete() with the expected args", func() {
-			_, err := runFoot("", tmpDir, "delete", "some-handle")
+			_, err := runFoot("", driverStoreDir, "delete", "some-handle")
 			Expect(err).NotTo(HaveOccurred())
 
 			var args foot.DeleteCalls
-			unmarshalFile(filepath.Join(tmpDir, foot.DeleteArgsFileName), &args)
+			unmarshalFile(filepath.Join(driverStoreDir, foot.DeleteArgsFileName), &args)
 			Expect(args[0].BundleID).NotTo(BeEmpty())
 		})
 
@@ -34,7 +34,7 @@ var _ = Describe("groot", func() {
 			})
 
 			It("fails", func() {
-				stdout, err := runFoot("", tmpDir, "delete", "some-handle")
+				stdout, err := runFoot("", driverStoreDir, "delete", "some-handle")
 				Expect(err).To(HaveOccurred())
 				Expect(stdout).To(ContainSubstring("delete-err"))
 			})
