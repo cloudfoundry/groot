@@ -60,6 +60,12 @@ var _ = Describe("create", func() {
 			Expect(args[0].ParentIDs).To(BeEmpty())
 		})
 
+		It("calls driver.Unpack() with the correct stream", func() {
+			var args foot.UnpackCalls
+			unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &args)
+			Expect(string(args[0].LayerTarContents)).To(Equal("a-rootfs"))
+		})
+
 		Describe("subsequent invocations", func() {
 			It("generates the same layer ID", func() {
 				var unpackArgs foot.UnpackCalls
@@ -70,9 +76,28 @@ var _ = Describe("create", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &unpackArgs)
-				secondInvocationLayerID := unpackArgs[0].ID
+				secondInvocationLayerID := unpackArgs[1].ID
 
 				Expect(secondInvocationLayerID).To(Equal(firstInvocationLayerID))
+			})
+
+			Context("when the rootfs file timestamp has changed", func() {
+				It("generates a different layer ID", func() {
+					var unpackArgs foot.UnpackCalls
+					unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &unpackArgs)
+					firstInvocationLayerID := unpackArgs[0].ID
+
+					now := time.Now()
+					Expect(os.Chtimes(rootfsURI, now.Add(time.Hour), now.Add(time.Hour))).To(Succeed())
+
+					_, err := runFoot(configFilePath, driverStoreDir, "create", rootfsURI, "some-handle")
+					Expect(err).NotTo(HaveOccurred())
+
+					unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &unpackArgs)
+					secondInvocationLayerID := unpackArgs[1].ID
+
+					Expect(secondInvocationLayerID).NotTo(Equal(firstInvocationLayerID))
+				})
 			})
 		})
 
@@ -136,66 +161,7 @@ var _ = Describe("create", func() {
 
 		Context("--disk-limit-size-bytes is given", func() {
 			BeforeEach(func() {
-				expectedDiskLimit = 500 - imageSize
 				createOptions = []string{"--disk-limit-size-bytes", "500"}
-			})
-
-			It("calls driver.Unpack() with the expected args", func() {
-				var args foot.UnpackCalls
-				unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &args)
-				Expect(args[0].ID).NotTo(BeEmpty())
-				Expect(args[0].ParentIDs).To(BeEmpty())
-			})
-
-			Describe("subsequent invocations", func() {
-				It("generates the same layer ID", func() {
-					var unpackArgs foot.UnpackCalls
-					unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &unpackArgs)
-					firstInvocationLayerID := unpackArgs[0].ID
-
-					_, err := runFoot(configFilePath, driverStoreDir, "create", rootfsURI, "some-handle")
-					Expect(err).NotTo(HaveOccurred())
-
-					unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &unpackArgs)
-					secondInvocationLayerID := unpackArgs[0].ID
-
-					Expect(secondInvocationLayerID).To(Equal(firstInvocationLayerID))
-				})
-			})
-
-			Describe("layer caching", func() {
-				It("calls exists", func() {
-					var existsArgs foot.ExistsCalls
-					unmarshalFile(filepath.Join(driverStoreDir, foot.ExistsArgsFileName), &existsArgs)
-					Expect(existsArgs[0].LayerID).ToNot(BeEmpty())
-				})
-
-				It("calls driver.Unpack() with the layerID", func() {
-					var existsArgs foot.ExistsCalls
-					unmarshalFile(filepath.Join(driverStoreDir, foot.ExistsArgsFileName), &existsArgs)
-					Expect(existsArgs[0].LayerID).ToNot(BeEmpty())
-
-					Expect(filepath.Join(driverStoreDir, foot.UnpackArgsFileName)).To(BeAnExistingFile())
-
-					var unpackArgs foot.UnpackCalls
-					unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &unpackArgs)
-					Expect(len(unpackArgs)).To(Equal(len(existsArgs)))
-
-					lastCall := len(unpackArgs) - 1
-					for i := range unpackArgs {
-						Expect(unpackArgs[i].ID).To(Equal(existsArgs[lastCall-i].LayerID))
-					}
-				})
-
-				Context("when the layer is cached", func() {
-					BeforeEach(func() {
-						env = append(env, "FOOT_LAYER_EXISTS=true")
-					})
-
-					It("doesn't call driver.Unpack()", func() {
-						Expect(filepath.Join(driverStoreDir, foot.UnpackArgsFileName)).ToNot(BeAnExistingFile())
-					})
-				})
 			})
 
 			It("calls driver.Bundle() with expected args", func() {
@@ -210,79 +176,12 @@ var _ = Describe("create", func() {
 				}
 				Expect(bundleArgs[0].ID).To(Equal("some-handle"))
 				Expect(bundleArgs[0].LayerIDs).To(ConsistOf(unpackLayerIds))
-				Expect(bundleArgs[0].DiskLimit).To(Equal(expectedDiskLimit))
-			})
-
-			It("calls driver.WriteMetadata() with expected args", func() {
-				var writeMetadataArgs foot.WriteMetadataCalls
-				unmarshalFile(filepath.Join(driverStoreDir, foot.WriteMetadataArgsFileName), &writeMetadataArgs)
-
-				Expect(writeMetadataArgs[0].ID).To(Equal("some-handle"))
-				Expect(writeMetadataArgs[0].VolumeData).To(Equal(groot.VolumeMetadata{BaseImageSize: imageSize}))
+				Expect(bundleArgs[0].DiskLimit).To(Equal(500 - imageSize))
 			})
 
 			Context("--exclude-image-from-quota is given as well", func() {
 				BeforeEach(func() {
-					expectedDiskLimit = 500
 					createOptions = []string{"--disk-limit-size-bytes", "500", "--exclude-image-from-quota"}
-				})
-
-				It("calls driver.Unpack() with the expected args", func() {
-					var args foot.UnpackCalls
-					unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &args)
-					Expect(args[0].ID).NotTo(BeEmpty())
-					Expect(args[0].ParentIDs).To(BeEmpty())
-				})
-
-				Describe("subsequent invocations", func() {
-					It("generates the same layer ID", func() {
-						var unpackArgs foot.UnpackCalls
-						unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &unpackArgs)
-						firstInvocationLayerID := unpackArgs[0].ID
-
-						_, err := runFoot(configFilePath, driverStoreDir, "create", rootfsURI, "some-handle")
-						Expect(err).NotTo(HaveOccurred())
-
-						unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &unpackArgs)
-						secondInvocationLayerID := unpackArgs[0].ID
-
-						Expect(secondInvocationLayerID).To(Equal(firstInvocationLayerID))
-					})
-				})
-
-				Describe("layer caching", func() {
-					It("calls exists", func() {
-						var existsArgs foot.ExistsCalls
-						unmarshalFile(filepath.Join(driverStoreDir, foot.ExistsArgsFileName), &existsArgs)
-						Expect(existsArgs[0].LayerID).ToNot(BeEmpty())
-					})
-
-					It("calls driver.Unpack() with the layerID", func() {
-						var existsArgs foot.ExistsCalls
-						unmarshalFile(filepath.Join(driverStoreDir, foot.ExistsArgsFileName), &existsArgs)
-						Expect(existsArgs[0].LayerID).ToNot(BeEmpty())
-
-						Expect(filepath.Join(driverStoreDir, foot.UnpackArgsFileName)).To(BeAnExistingFile())
-
-						var unpackArgs foot.UnpackCalls
-						unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &unpackArgs)
-						Expect(len(unpackArgs)).To(Equal(len(existsArgs)))
-
-						lastCall := len(unpackArgs) - 1
-						for i := range unpackArgs {
-							Expect(unpackArgs[i].ID).To(Equal(existsArgs[lastCall-i].LayerID))
-						}
-					})
-
-					Context("when the layer is cached", func() {
-						BeforeEach(func() {
-							env = append(env, "FOOT_LAYER_EXISTS=true")
-						})
-
-						It("doesn't call driver.Unpack()", func() {
-							Expect(filepath.Join(driverStoreDir, foot.UnpackArgsFileName)).ToNot(BeAnExistingFile())
-						})
-					})
 				})
 
 				It("calls driver.Bundle() with expected args", func() {
@@ -297,43 +196,7 @@ var _ = Describe("create", func() {
 					}
 					Expect(bundleArgs[0].ID).To(Equal("some-handle"))
 					Expect(bundleArgs[0].LayerIDs).To(ConsistOf(unpackLayerIds))
-					Expect(bundleArgs[0].DiskLimit).To(Equal(expectedDiskLimit))
-				})
-
-				It("calls driver.WriteMetadata() with expected args", func() {
-					var writeMetadataArgs foot.WriteMetadataCalls
-					unmarshalFile(filepath.Join(driverStoreDir, foot.WriteMetadataArgsFileName), &writeMetadataArgs)
-
-					Expect(writeMetadataArgs[0].ID).To(Equal("some-handle"))
-					Expect(writeMetadataArgs[0].VolumeData).To(Equal(groot.VolumeMetadata{BaseImageSize: imageSize}))
-				})
-
-			})
-		})
-
-		It("calls driver.Unpack() with the correct stream", func() {
-			var args foot.UnpackCalls
-			unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &args)
-			Expect(string(args[0].LayerTarContents)).To(Equal("a-rootfs"))
-		})
-
-		Describe("subsequent invocations", func() {
-			Context("when the rootfs file timestamp has changed", func() {
-				It("generates a different layer ID", func() {
-					var unpackArgs foot.UnpackCalls
-					unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &unpackArgs)
-					firstInvocationLayerID := unpackArgs[0].ID
-
-					now := time.Now()
-					Expect(os.Chtimes(rootfsURI, now.Add(time.Hour), now.Add(time.Hour))).To(Succeed())
-
-					_, err := runFoot(configFilePath, driverStoreDir, "create", rootfsURI, "some-handle")
-					Expect(err).NotTo(HaveOccurred())
-
-					unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &unpackArgs)
-					secondInvocationLayerID := unpackArgs[1].ID
-
-					Expect(secondInvocationLayerID).NotTo(Equal(firstInvocationLayerID))
+					Expect(bundleArgs[0].DiskLimit).To(Equal(int64(500)))
 				})
 			})
 		})
@@ -432,66 +295,7 @@ var _ = Describe("create", func() {
 
 		Context("--disk-limit-size-bytes is given", func() {
 			BeforeEach(func() {
-				expectedDiskLimit = 500 - imageSize
 				createOptions = []string{"--disk-limit-size-bytes", "500"}
-			})
-
-			It("calls driver.Unpack() with the expected args", func() {
-				var args foot.UnpackCalls
-				unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &args)
-				Expect(args[0].ID).NotTo(BeEmpty())
-				Expect(args[0].ParentIDs).To(BeEmpty())
-			})
-
-			Describe("subsequent invocations", func() {
-				It("generates the same layer ID", func() {
-					var unpackArgs foot.UnpackCalls
-					unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &unpackArgs)
-					firstInvocationLayerID := unpackArgs[0].ID
-
-					_, err := runFoot(configFilePath, driverStoreDir, "create", rootfsURI, "some-handle")
-					Expect(err).NotTo(HaveOccurred())
-
-					unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &unpackArgs)
-					secondInvocationLayerID := unpackArgs[0].ID
-
-					Expect(secondInvocationLayerID).To(Equal(firstInvocationLayerID))
-				})
-			})
-
-			Describe("layer caching", func() {
-				It("calls exists", func() {
-					var existsArgs foot.ExistsCalls
-					unmarshalFile(filepath.Join(driverStoreDir, foot.ExistsArgsFileName), &existsArgs)
-					Expect(existsArgs[0].LayerID).ToNot(BeEmpty())
-				})
-
-				It("calls driver.Unpack() with the layerID", func() {
-					var existsArgs foot.ExistsCalls
-					unmarshalFile(filepath.Join(driverStoreDir, foot.ExistsArgsFileName), &existsArgs)
-					Expect(existsArgs[0].LayerID).ToNot(BeEmpty())
-
-					Expect(filepath.Join(driverStoreDir, foot.UnpackArgsFileName)).To(BeAnExistingFile())
-
-					var unpackArgs foot.UnpackCalls
-					unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &unpackArgs)
-					Expect(len(unpackArgs)).To(Equal(len(existsArgs)))
-
-					lastCall := len(unpackArgs) - 1
-					for i := range unpackArgs {
-						Expect(unpackArgs[i].ID).To(Equal(existsArgs[lastCall-i].LayerID))
-					}
-				})
-
-				Context("when the layer is cached", func() {
-					BeforeEach(func() {
-						env = append(env, "FOOT_LAYER_EXISTS=true")
-					})
-
-					It("doesn't call driver.Unpack()", func() {
-						Expect(filepath.Join(driverStoreDir, foot.UnpackArgsFileName)).ToNot(BeAnExistingFile())
-					})
-				})
 			})
 
 			It("calls driver.Bundle() with expected args", func() {
@@ -506,79 +310,12 @@ var _ = Describe("create", func() {
 				}
 				Expect(bundleArgs[0].ID).To(Equal("some-handle"))
 				Expect(bundleArgs[0].LayerIDs).To(ConsistOf(unpackLayerIds))
-				Expect(bundleArgs[0].DiskLimit).To(Equal(expectedDiskLimit))
-			})
-
-			It("calls driver.WriteMetadata() with expected args", func() {
-				var writeMetadataArgs foot.WriteMetadataCalls
-				unmarshalFile(filepath.Join(driverStoreDir, foot.WriteMetadataArgsFileName), &writeMetadataArgs)
-
-				Expect(writeMetadataArgs[0].ID).To(Equal("some-handle"))
-				Expect(writeMetadataArgs[0].VolumeData).To(Equal(groot.VolumeMetadata{BaseImageSize: imageSize}))
+				Expect(bundleArgs[0].DiskLimit).To(Equal(500 - imageSize))
 			})
 
 			Context("--exclude-image-from-quota is given as well", func() {
 				BeforeEach(func() {
-					expectedDiskLimit = 500
 					createOptions = []string{"--disk-limit-size-bytes", "500", "--exclude-image-from-quota"}
-				})
-
-				It("calls driver.Unpack() with the expected args", func() {
-					var args foot.UnpackCalls
-					unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &args)
-					Expect(args[0].ID).NotTo(BeEmpty())
-					Expect(args[0].ParentIDs).To(BeEmpty())
-				})
-
-				Describe("subsequent invocations", func() {
-					It("generates the same layer ID", func() {
-						var unpackArgs foot.UnpackCalls
-						unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &unpackArgs)
-						firstInvocationLayerID := unpackArgs[0].ID
-
-						_, err := runFoot(configFilePath, driverStoreDir, "create", rootfsURI, "some-handle")
-						Expect(err).NotTo(HaveOccurred())
-
-						unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &unpackArgs)
-						secondInvocationLayerID := unpackArgs[0].ID
-
-						Expect(secondInvocationLayerID).To(Equal(firstInvocationLayerID))
-					})
-				})
-
-				Describe("layer caching", func() {
-					It("calls exists", func() {
-						var existsArgs foot.ExistsCalls
-						unmarshalFile(filepath.Join(driverStoreDir, foot.ExistsArgsFileName), &existsArgs)
-						Expect(existsArgs[0].LayerID).ToNot(BeEmpty())
-					})
-
-					It("calls driver.Unpack() with the layerID", func() {
-						var existsArgs foot.ExistsCalls
-						unmarshalFile(filepath.Join(driverStoreDir, foot.ExistsArgsFileName), &existsArgs)
-						Expect(existsArgs[0].LayerID).ToNot(BeEmpty())
-
-						Expect(filepath.Join(driverStoreDir, foot.UnpackArgsFileName)).To(BeAnExistingFile())
-
-						var unpackArgs foot.UnpackCalls
-						unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &unpackArgs)
-						Expect(len(unpackArgs)).To(Equal(len(existsArgs)))
-
-						lastCall := len(unpackArgs) - 1
-						for i := range unpackArgs {
-							Expect(unpackArgs[i].ID).To(Equal(existsArgs[lastCall-i].LayerID))
-						}
-					})
-
-					Context("when the layer is cached", func() {
-						BeforeEach(func() {
-							env = append(env, "FOOT_LAYER_EXISTS=true")
-						})
-
-						It("doesn't call driver.Unpack()", func() {
-							Expect(filepath.Join(driverStoreDir, foot.UnpackArgsFileName)).ToNot(BeAnExistingFile())
-						})
-					})
 				})
 
 				It("calls driver.Bundle() with expected args", func() {
@@ -593,17 +330,8 @@ var _ = Describe("create", func() {
 					}
 					Expect(bundleArgs[0].ID).To(Equal("some-handle"))
 					Expect(bundleArgs[0].LayerIDs).To(ConsistOf(unpackLayerIds))
-					Expect(bundleArgs[0].DiskLimit).To(Equal(expectedDiskLimit))
+					Expect(bundleArgs[0].DiskLimit).To(Equal(int64(500)))
 				})
-
-				It("calls driver.WriteMetadata() with expected args", func() {
-					var writeMetadataArgs foot.WriteMetadataCalls
-					unmarshalFile(filepath.Join(driverStoreDir, foot.WriteMetadataArgsFileName), &writeMetadataArgs)
-
-					Expect(writeMetadataArgs[0].ID).To(Equal("some-handle"))
-					Expect(writeMetadataArgs[0].VolumeData).To(Equal(groot.VolumeMetadata{BaseImageSize: imageSize}))
-				})
-
 			})
 		})
 
