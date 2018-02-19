@@ -2,6 +2,7 @@ package integration_test
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"time"
@@ -9,13 +10,15 @@ import (
 	"code.cloudfoundry.org/groot/integration/cmd/foot/foot"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
+	"github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("pull", func() {
 	var (
-		rootfsURI   string
-		footStdout  string
-		footExitErr error
+		rootfsURI string
+		session   *gexec.Session
+		footCmd   *exec.Cmd
 	)
 
 	BeforeEach(func() {
@@ -23,14 +26,13 @@ var _ = Describe("pull", func() {
 		configFilePath = filepath.Join(driverStoreDir, "groot-config.yml")
 		rootfsURI = filepath.Join(driverStoreDir, "rootfs.tar")
 
-		env = []string{}
-
 		writeFile(configFilePath, "")
 		writeFile(rootfsURI, "a-rootfs")
+		footCmd = newFootCommand(configFilePath, driverStoreDir, "pull", rootfsURI)
 	})
 
 	JustBeforeEach(func() {
-		footStdout, footExitErr = runFoot(configFilePath, driverStoreDir, "pull", rootfsURI)
+		session = gexecStart(footCmd).Wait()
 	})
 
 	AfterEach(func() {
@@ -39,7 +41,7 @@ var _ = Describe("pull", func() {
 
 	Describe("Local images", func() {
 		It("does not return an error", func() {
-			Expect(footExitErr).NotTo(HaveOccurred())
+			Expect(session).To(gexec.Exit(0))
 		})
 
 		It("calls driver.Unpack() with the expected args", func() {
@@ -55,8 +57,8 @@ var _ = Describe("pull", func() {
 				unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &unpackArgs)
 				firstInvocationLayerID := unpackArgs[0].ID
 
-				_, err := runFoot(configFilePath, driverStoreDir, "pull", rootfsURI)
-				Expect(err).NotTo(HaveOccurred())
+				footCmd = newFootCommand(configFilePath, driverStoreDir, "pull", rootfsURI)
+				Expect(gexecStart(footCmd).Wait()).To(gexec.Exit(0))
 
 				unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &unpackArgs)
 				secondInvocationLayerID := unpackArgs[0].ID
@@ -91,7 +93,7 @@ var _ = Describe("pull", func() {
 
 			Context("when the layer is cached", func() {
 				BeforeEach(func() {
-					env = append(env, "FOOT_LAYER_EXISTS=true")
+					footCmd.Env = append(os.Environ(), "FOOT_LAYER_EXISTS=true")
 				})
 
 				It("doesn't call driver.Unpack()", func() {
@@ -116,8 +118,8 @@ var _ = Describe("pull", func() {
 					now := time.Now()
 					Expect(os.Chtimes(rootfsURI, now.Add(time.Hour), now.Add(time.Hour))).To(Succeed())
 
-					_, err := runFoot(configFilePath, driverStoreDir, "pull", rootfsURI)
-					Expect(err).NotTo(HaveOccurred())
+					footCmd = newFootCommand(configFilePath, driverStoreDir, "pull", rootfsURI)
+					Expect(gexecStart(footCmd).Wait()).To(gexec.Exit(0))
 
 					unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &unpackArgs)
 					secondInvocationLayerID := unpackArgs[1].ID
@@ -150,12 +152,12 @@ var _ = Describe("pull", func() {
 	Describe("failure", func() {
 		Context("when driver.Unpack() returns an error", func() {
 			BeforeEach(func() {
-				env = append(env, "FOOT_UNPACK_ERROR=true")
+				footCmd.Env = append(os.Environ(), "FOOT_UNPACK_ERROR=true")
 			})
 
 			It("prints the error", func() {
-				Expect(footExitErr).To(HaveOccurred())
-				Expect(footStdout).To(ContainSubstring("unpack-err"))
+				Expect(session).NotTo(gexec.Exit(0))
+				Expect(session.Out).To(gbytes.Say("unpack-err"))
 			})
 		})
 
@@ -165,8 +167,8 @@ var _ = Describe("pull", func() {
 			})
 
 			It("prints an error", func() {
-				Expect(footExitErr).To(HaveOccurred())
-				Expect(footStdout).To(ContainSubstring(notFoundRuntimeError[runtime.GOOS]))
+				Expect(session).NotTo(gexec.Exit(0))
+				Expect(session.Out).To(gbytes.Say(notFoundRuntimeError[runtime.GOOS]))
 			})
 		})
 
@@ -176,8 +178,8 @@ var _ = Describe("pull", func() {
 			})
 
 			It("prints an error", func() {
-				Expect(footExitErr).To(HaveOccurred())
-				Expect(footStdout).To(ContainSubstring("yaml"))
+				Expect(session).NotTo(gexec.Exit(0))
+				Expect(session.Out).To(gbytes.Say("yaml"))
 			})
 		})
 
@@ -187,8 +189,8 @@ var _ = Describe("pull", func() {
 			})
 
 			It("prints an error", func() {
-				Expect(footExitErr).To(HaveOccurred())
-				Expect(footStdout).To(ContainSubstring("lol"))
+				Expect(session).NotTo(gexec.Exit(0))
+				Expect(session.Out).To(gbytes.Say("lol"))
 			})
 		})
 
@@ -198,8 +200,8 @@ var _ = Describe("pull", func() {
 			})
 
 			It("prints an error", func() {
-				Expect(footExitErr).To(HaveOccurred())
-				Expect(footStdout).To(ContainSubstring(notFoundRuntimeError[runtime.GOOS]))
+				Expect(session).NotTo(gexec.Exit(0))
+				Expect(session.Out).To(gbytes.Say(notFoundRuntimeError[runtime.GOOS]))
 			})
 		})
 	})

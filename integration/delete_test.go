@@ -2,18 +2,30 @@ package integration_test
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	"code.cloudfoundry.org/groot/integration/cmd/foot/foot"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
+	"github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("groot", func() {
+	var (
+		session *gexec.Session
+		footCmd *exec.Cmd
+	)
+
 	Describe("delete", func() {
 		BeforeEach(func() {
-			env = []string{}
 			driverStoreDir = tempDir("", "groot-integration-tests")
+			footCmd = newFootCommand("", driverStoreDir, "delete", "some-handle")
+		})
+
+		JustBeforeEach(func() {
+			session = gexecStart(footCmd).Wait()
 		})
 
 		AfterEach(func() {
@@ -21,8 +33,7 @@ var _ = Describe("groot", func() {
 		})
 
 		It("calls driver.Delete() with the expected args", func() {
-			_, err := runFoot("", driverStoreDir, "delete", "some-handle")
-			Expect(err).NotTo(HaveOccurred())
+			Expect(session).To(gexec.Exit(0))
 
 			var args foot.DeleteCalls
 			unmarshalFile(filepath.Join(driverStoreDir, foot.DeleteArgsFileName), &args)
@@ -31,13 +42,12 @@ var _ = Describe("groot", func() {
 
 		Context("when the driver returns an error", func() {
 			BeforeEach(func() {
-				env = append(env, "FOOT_BUNDLE_ERROR=true")
+				footCmd.Env = append(os.Environ(), "FOOT_BUNDLE_ERROR=true")
 			})
 
 			It("fails", func() {
-				stdout, err := runFoot("", driverStoreDir, "delete", "some-handle")
-				Expect(err).To(HaveOccurred())
-				Expect(stdout).To(ContainSubstring("delete-err"))
+				Expect(session).NotTo(gexec.Exit(0))
+				Expect(session.Out).To(gbytes.Say("delete-err"))
 			})
 		})
 	})

@@ -1,11 +1,8 @@
 package integration_test
 
 import (
-	"bytes"
 	"encoding/json"
-	"io"
 	"io/ioutil"
-	"os"
 	"os/exec"
 
 	. "github.com/onsi/ginkgo"
@@ -18,7 +15,6 @@ import (
 var (
 	footBinPath          string
 	driverStoreDir       string
-	env                  []string
 	configFilePath       string
 	notFoundRuntimeError = map[string]string{
 		"linux":   "no such file or directory",
@@ -64,15 +60,14 @@ func unmarshalFile(filename string, data interface{}) {
 	Expect(json.Unmarshal(content, data)).To(Succeed())
 }
 
-func runFoot(configFilePath, driverStore string, args ...string) (string, error) {
+func newFootCommand(configFilePath, driverStore string, args ...string) *exec.Cmd {
 	footCmd := exec.Command(footBinPath, "--config", configFilePath, "--driver-store", driverStore)
 	footCmd.Args = append(footCmd.Args, args...)
-	footCmd.Env = append(os.Environ(), env...)
+	return footCmd
+}
 
-	var stdout bytes.Buffer
-	footCmd.Stdout = io.MultiWriter(&stdout, GinkgoWriter)
-	footCmd.Stderr = GinkgoWriter
-
-	err := footCmd.Run()
-	return stdout.String(), err
+func gexecStart(cmd *exec.Cmd) *gexec.Session {
+	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
+	Expect(err).NotTo(HaveOccurred())
+	return session
 }

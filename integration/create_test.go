@@ -2,6 +2,7 @@ package integration_test
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"time"
@@ -10,16 +11,16 @@ import (
 	"code.cloudfoundry.org/groot/integration/cmd/foot/foot"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
+	"github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("create", func() {
 	var (
-		rootfsURI         string
-		expectedDiskLimit int64
-		imageSize         int64
-		createOptions     []string
-		footStdout        string
-		footExitErr       error
+		rootfsURI string
+		imageSize int64
+		session   *gexec.Session
+		footCmd   *exec.Cmd
 	)
 
 	BeforeEach(func() {
@@ -27,21 +28,17 @@ var _ = Describe("create", func() {
 		configFilePath = filepath.Join(driverStoreDir, "groot-config.yml")
 		rootfsURI = filepath.Join(driverStoreDir, "rootfs.tar")
 
-		env = []string{}
-
-		createOptions = []string{}
-		expectedDiskLimit = 0
 		writeFile(configFilePath, "")
 
 		imageContents := "a-rootfs"
 		imageSize = int64(len(imageContents))
 		writeFile(rootfsURI, imageContents)
+
+		footCmd = newFootCommand(configFilePath, driverStoreDir, "create", rootfsURI, "some-handle")
 	})
 
 	JustBeforeEach(func() {
-		footArgs := append([]string{"create"}, createOptions...)
-		footArgs = append(footArgs, rootfsURI, "some-handle")
-		footStdout, footExitErr = runFoot(configFilePath, driverStoreDir, footArgs...)
+		session = gexecStart(footCmd).Wait()
 	})
 
 	AfterEach(func() {
@@ -50,7 +47,7 @@ var _ = Describe("create", func() {
 
 	Describe("Local images", func() {
 		It("does not return an error", func() {
-			Expect(footExitErr).NotTo(HaveOccurred())
+			Expect(session).To(gexec.Exit(0))
 		})
 
 		It("calls driver.Unpack() with the expected args", func() {
@@ -72,8 +69,8 @@ var _ = Describe("create", func() {
 				unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &unpackArgs)
 				firstInvocationLayerID := unpackArgs[0].ID
 
-				_, err := runFoot(configFilePath, driverStoreDir, "create", rootfsURI, "some-handle")
-				Expect(err).NotTo(HaveOccurred())
+				footCmd = newFootCommand(configFilePath, driverStoreDir, "create", rootfsURI, "some-handle")
+				Expect(gexecStart(footCmd).Wait()).To(gexec.Exit(0))
 
 				unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &unpackArgs)
 				secondInvocationLayerID := unpackArgs[1].ID
@@ -90,8 +87,8 @@ var _ = Describe("create", func() {
 					now := time.Now()
 					Expect(os.Chtimes(rootfsURI, now.Add(time.Hour), now.Add(time.Hour))).To(Succeed())
 
-					_, err := runFoot(configFilePath, driverStoreDir, "create", rootfsURI, "some-handle")
-					Expect(err).NotTo(HaveOccurred())
+					footCmd = newFootCommand(configFilePath, driverStoreDir, "create", rootfsURI, "some-handle")
+					Expect(gexecStart(footCmd).Wait()).To(gexec.Exit(0))
 
 					unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &unpackArgs)
 					secondInvocationLayerID := unpackArgs[1].ID
@@ -127,7 +124,7 @@ var _ = Describe("create", func() {
 
 			Context("when the layer is cached", func() {
 				BeforeEach(func() {
-					env = append(env, "FOOT_LAYER_EXISTS=true")
+					footCmd.Env = append(os.Environ(), "FOOT_LAYER_EXISTS=true")
 				})
 
 				It("doesn't call driver.Unpack()", func() {
@@ -148,7 +145,7 @@ var _ = Describe("create", func() {
 			}
 			Expect(bundleArgs[0].ID).To(Equal("some-handle"))
 			Expect(bundleArgs[0].LayerIDs).To(ConsistOf(unpackLayerIds))
-			Expect(bundleArgs[0].DiskLimit).To(Equal(expectedDiskLimit))
+			Expect(bundleArgs[0].DiskLimit).To(Equal(int64(0)))
 		})
 
 		It("calls driver.WriteMetadata() with expected args", func() {
@@ -161,7 +158,7 @@ var _ = Describe("create", func() {
 
 		Context("--disk-limit-size-bytes is given", func() {
 			BeforeEach(func() {
-				createOptions = []string{"--disk-limit-size-bytes", "500"}
+				footCmd = newFootCommand(configFilePath, driverStoreDir, "create", rootfsURI, "some-handle", "--disk-limit-size-bytes", "500")
 			})
 
 			It("calls driver.Bundle() with expected args", func() {
@@ -181,7 +178,7 @@ var _ = Describe("create", func() {
 
 			Context("--exclude-image-from-quota is given as well", func() {
 				BeforeEach(func() {
-					createOptions = []string{"--disk-limit-size-bytes", "500", "--exclude-image-from-quota"}
+					footCmd = newFootCommand(configFilePath, driverStoreDir, "create", rootfsURI, "some-handle", "--disk-limit-size-bytes", "500", "--exclude-image-from-quota")
 				})
 
 				It("calls driver.Bundle() with expected args", func() {
@@ -220,41 +217,41 @@ var _ = Describe("create", func() {
 	Describe("failure", func() {
 		Context("--disk-limit-size-bytes is negative", func() {
 			BeforeEach(func() {
-				createOptions = []string{"--disk-limit-size-bytes", "-500", "--exclude-image-from-quota"}
+				footCmd = newFootCommand(configFilePath, driverStoreDir, "create", rootfsURI, "some-handle", "--disk-limit-size-bytes", "-500", "--exclude-image-from-quota")
 			})
 
 			It("prints an error", func() {
-				Expect(footStdout).To(ContainSubstring("invalid disk limit: -500"))
+				Expect(session.Out).To(gbytes.Say("invalid disk limit: -500"))
 			})
 		})
 
 		Context("--disk-limit-size-bytes is less than the image size", func() {
 			BeforeEach(func() {
-				createOptions = []string{"--disk-limit-size-bytes", "5"}
+				footCmd = newFootCommand(configFilePath, driverStoreDir, "create", rootfsURI, "some-handle", "--disk-limit-size-bytes", "5")
 			})
 
 			It("prints an error", func() {
-				Expect(footStdout).To(ContainSubstring("pulling image: layers exceed disk quota 8/5 bytes"))
+				Expect(session.Out).To(gbytes.Say("pulling image: layers exceed disk quota 8/5 bytes"))
 			})
 		})
 
 		Context("--disk-limit-size-bytes is exactly the image size", func() {
 			BeforeEach(func() {
-				createOptions = []string{"--disk-limit-size-bytes", "8"}
+				footCmd = newFootCommand(configFilePath, driverStoreDir, "create", rootfsURI, "some-handle", "--disk-limit-size-bytes", "8")
 			})
 
 			It("prints an error", func() {
-				Expect(footStdout).To(ContainSubstring("disk limit 8 must be larger than image size 8"))
+				Expect(session.Out).To(gbytes.Say("disk limit 8 must be larger than image size 8"))
 			})
 		})
 
 		Context("when driver.Unpack() returns an error", func() {
 			BeforeEach(func() {
-				env = append(env, "FOOT_UNPACK_ERROR=true")
+				footCmd.Env = append(os.Environ(), "FOOT_UNPACK_ERROR=true")
 			})
 
 			It("prints the error", func() {
-				Expect(footStdout).To(ContainSubstring("unpack-err"))
+				Expect(session.Out).To(gbytes.Say("unpack-err"))
 			})
 		})
 
@@ -264,7 +261,7 @@ var _ = Describe("create", func() {
 			})
 
 			It("prints an error", func() {
-				Expect(footStdout).To(ContainSubstring(notFoundRuntimeError[runtime.GOOS]))
+				Expect(session.Out).To(gbytes.Say(notFoundRuntimeError[runtime.GOOS]))
 			})
 		})
 
@@ -274,7 +271,7 @@ var _ = Describe("create", func() {
 			})
 
 			It("prints an error", func() {
-				Expect(footStdout).To(ContainSubstring("yaml"))
+				Expect(session.Out).To(gbytes.Say("yaml"))
 			})
 		})
 
@@ -284,27 +281,27 @@ var _ = Describe("create", func() {
 			})
 
 			It("prints an error", func() {
-				Expect(footStdout).To(ContainSubstring("lol"))
+				Expect(session.Out).To(gbytes.Say("lol"))
 			})
 		})
 
 		Context("when driver.Bundle() returns an error", func() {
 			BeforeEach(func() {
-				env = append(env, "FOOT_BUNDLE_ERROR=true")
+				footCmd.Env = append(os.Environ(), "FOOT_BUNDLE_ERROR=true")
 			})
 
 			It("prints the error", func() {
-				Expect(footStdout).To(ContainSubstring("bundle-err"))
+				Expect(session.Out).To(gbytes.Say("bundle-err"))
 			})
 		})
 
 		Context("when driver.WriteMetadata() returns an error", func() {
 			BeforeEach(func() {
-				env = append(env, "FOOT_WRITE_METADATA_ERROR=true")
+				footCmd.Env = append(os.Environ(), "FOOT_WRITE_METADATA_ERROR=true")
 			})
 
 			It("prints the error", func() {
-				Expect(footStdout).To(ContainSubstring("write-metadata-err"))
+				Expect(session.Out).To(gbytes.Say("write-metadata-err"))
 			})
 		})
 
@@ -314,7 +311,7 @@ var _ = Describe("create", func() {
 			})
 
 			It("prints an error", func() {
-				Expect(footStdout).To(ContainSubstring(notFoundRuntimeError[runtime.GOOS]))
+				Expect(session.Out).To(gbytes.Say(notFoundRuntimeError[runtime.GOOS]))
 			})
 		})
 	})

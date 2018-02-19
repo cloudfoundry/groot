@@ -3,18 +3,30 @@ package integration_test
 import (
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	"code.cloudfoundry.org/groot"
 	"code.cloudfoundry.org/groot/integration/cmd/foot/foot"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
+	"github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("stats", func() {
+	var (
+		footCmd *exec.Cmd
+		session *gexec.Session
+	)
+
 	BeforeEach(func() {
 		driverStoreDir = tempDir("", "groot-integration-tests")
-		env = []string{}
+		footCmd = newFootCommand("", driverStoreDir, "stats", "some-handle")
+	})
+
+	JustBeforeEach(func() {
+		session = gexecStart(footCmd).Wait()
 	})
 
 	AfterEach(func() {
@@ -23,8 +35,7 @@ var _ = Describe("stats", func() {
 
 	Describe("success", func() {
 		It("calls driver.Stats() with expected args", func() {
-			_, err := runFoot("", driverStoreDir, "stats", "some-handle")
-			Expect(err).NotTo(HaveOccurred())
+			Expect(session).To(gexec.Exit(0))
 
 			var statsArgs foot.StatsCalls
 			unmarshalFile(filepath.Join(driverStoreDir, foot.StatsArgsFileName), &statsArgs)
@@ -32,11 +43,10 @@ var _ = Describe("stats", func() {
 		})
 
 		It("returns the stats json on stdout", func() {
-			stdout, err := runFoot("", driverStoreDir, "stats", "some-handle")
-			Expect(err).NotTo(HaveOccurred())
+			Expect(session).To(gexec.Exit(0))
 
 			var stats groot.VolumeStats
-			Expect(json.Unmarshal([]byte(stdout), &stats)).To(Succeed())
+			Expect(json.Unmarshal(session.Out.Contents(), &stats)).To(Succeed())
 			Expect(stats).To(Equal(foot.ReturnedVolumeStats))
 		})
 	})
@@ -44,13 +54,12 @@ var _ = Describe("stats", func() {
 	Describe("failure", func() {
 		Context("when driver.Stats() returns an error", func() {
 			BeforeEach(func() {
-				env = append(env, "FOOT_STATS_ERROR=true")
+				footCmd.Env = append(os.Environ(), "FOOT_STATS_ERROR=true")
 			})
 
 			It("prints the error", func() {
-				stdout, err := runFoot("", driverStoreDir, "stats", "some-handle")
-				Expect(err).To(HaveOccurred())
-				Expect(stdout).To(ContainSubstring("stats-err"))
+				Expect(session).NotTo(gexec.Exit(0))
+				Expect(session).To(gbytes.Say("stats-err"))
 			})
 		})
 	})
