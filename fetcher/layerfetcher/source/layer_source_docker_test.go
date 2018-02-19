@@ -3,11 +3,11 @@ package source_test
 import (
 	"compress/gzip"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
 
-	"code.cloudfoundry.org/groot/fetcher/layerfetcher"
 	"code.cloudfoundry.org/groot/fetcher/layerfetcher/source"
 	"code.cloudfoundry.org/groot/imagepuller"
 	"code.cloudfoundry.org/groot/testhelpers"
@@ -16,6 +16,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
+	"github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 var _ = Describe("Layer source: Docker", func() {
@@ -28,6 +29,8 @@ var _ = Describe("Layer source: Docker", func() {
 		configBlob    string
 		layerInfos    []imagepuller.LayerInfo
 		systemContext types.SystemContext
+
+		fakeRegistry *testhelpers.FakeRegistry
 
 		skipOCILayerValidation bool
 	)
@@ -58,6 +61,8 @@ var _ = Describe("Layer source: Docker", func() {
 			},
 		}
 
+		fakeRegistry = testhelpers.NewFakeRegistry(urlParse("https://registry-1.docker.io"))
+
 		logger = lagertest.NewTestLogger("test-layer-source")
 		imageURL = urlParse("docker:///cfgarden/empty:v0.1.1")
 	})
@@ -67,12 +72,21 @@ var _ = Describe("Layer source: Docker", func() {
 	})
 
 	Describe("Manifest", func() {
+		var (
+			manifest    types.Image
+			manifestErr error
+		)
+
+		JustBeforeEach(func() {
+			manifest, manifestErr = layerSource.Manifest(logger, imageURL)
+		})
+
 		It("fetches the manifest", func() {
-			manifest, err := layerSource.Manifest(logger, imageURL)
-			Expect(err).NotTo(HaveOccurred())
+			By("not returning an error")
+			Expect(manifestErr).NotTo(HaveOccurred())
 
+			By("fetching the manifest")
 			Expect(manifest.ConfigInfo().Digest.String()).To(Equal(configBlob))
-
 			Expect(manifest.LayerInfos()).To(HaveLen(2))
 			Expect(manifest.LayerInfos()[0].Digest.String()).To(Equal(layerInfos[0].BlobID))
 			Expect(manifest.LayerInfos()[0].Size).To(Equal(layerInfos[0].Size))
@@ -86,11 +100,11 @@ var _ = Describe("Layer source: Docker", func() {
 			})
 
 			It("fetches the manifest", func() {
-				manifest, err := layerSource.Manifest(logger, imageURL)
-				Expect(err).NotTo(HaveOccurred())
+				By("not returning an error")
+				Expect(manifestErr).NotTo(HaveOccurred())
 
+				By("fetching the manifest")
 				Expect(manifest.ConfigInfo().Digest.String()).To(Equal(testhelpers.SchemaV1EmptyImage.ConfigBlobID))
-
 				Expect(manifest.LayerInfos()).To(HaveLen(3))
 				Expect(manifest.LayerInfos()[0].Digest.String()).To(Equal(testhelpers.SchemaV1EmptyImage.Layers[0].BlobID))
 				Expect(manifest.LayerInfos()[0].Size).To(Equal(int64(-1)))
@@ -111,32 +125,24 @@ var _ = Describe("Layer source: Docker", func() {
 				layerInfos[1].BlobID = "sha256:48ce60c2de08a424e10810c41ec2f00916cfd0f12333e96eb4363eb63723be87"
 			})
 
-			Context("when the correct credentials are provided", func() {
-				It("fetches the manifest", func() {
-					manifest, err := layerSource.Manifest(logger, imageURL)
-					Expect(err).NotTo(HaveOccurred())
+			It("fetches the manifest", func() {
+				By("not returning an error")
+				Expect(manifestErr).NotTo(HaveOccurred())
 
-					Expect(manifest.ConfigInfo().Digest.String()).To(Equal(configBlob))
-
-					Expect(manifest.LayerInfos()).To(HaveLen(2))
-					Expect(manifest.LayerInfos()[0].Digest.String()).To(Equal(layerInfos[0].BlobID))
-					Expect(manifest.LayerInfos()[0].Size).To(Equal(layerInfos[0].Size))
-					Expect(manifest.LayerInfos()[1].Digest.String()).To(Equal(layerInfos[1].BlobID))
-					Expect(manifest.LayerInfos()[1].Size).To(Equal(layerInfos[1].Size))
-				})
+				By("fetching the manifest")
+				Expect(manifest.ConfigInfo().Digest.String()).To(Equal(configBlob))
+				Expect(manifest.LayerInfos()).To(HaveLen(2))
+				Expect(manifest.LayerInfos()[0].Digest.String()).To(Equal(layerInfos[0].BlobID))
+				Expect(manifest.LayerInfos()[0].Size).To(Equal(layerInfos[0].Size))
+				Expect(manifest.LayerInfos()[1].Digest.String()).To(Equal(layerInfos[1].BlobID))
+				Expect(manifest.LayerInfos()[1].Size).To(Equal(layerInfos[1].Size))
 			})
 
 			Context("when the registry returns a 401 when trying to get the auth token", func() {
-				// We need a fake registry here because Dockerhub was rate limiting on multiple bad credential auth attempts
-				var fakeRegistry *testhelpers.FakeRegistry
-
 				BeforeEach(func() {
-					dockerHubUrl := urlParse("https://registry-1.docker.io")
-					fakeRegistry = testhelpers.NewFakeRegistry(dockerHubUrl)
 					fakeRegistry.Start()
 					fakeRegistry.ForceTokenAuthError()
 					imageURL = urlParse(fmt.Sprintf("docker://%s/doesnt-matter-because-fake-registry", fakeRegistry.Addr()))
-
 					systemContext.DockerInsecureSkipTLSVerify = true
 				})
 
@@ -145,18 +151,18 @@ var _ = Describe("Layer source: Docker", func() {
 				})
 
 				It("returns an informative error", func() {
-					_, err := layerSource.Manifest(logger, imageURL)
-					Expect(err).To(MatchError(ContainSubstring("unable to retrieve auth token")))
+					Expect(manifestErr).To(MatchError(ContainSubstring("unable to retrieve auth token")))
 				})
 			})
 		})
 
 		Context("when the image url is invalid", func() {
-			It("returns an error", func() {
-				url := urlParse("docker:cfgarden/empty:v0.1.0")
+			BeforeEach(func() {
+				imageURL = urlParse("docker:cfgarden/empty:v0.1.0")
+			})
 
-				_, err := layerSource.Manifest(logger, url)
-				Expect(err).To(MatchError(ContainSubstring("parsing url failed")))
+			It("returns an error", func() {
+				Expect(manifestErr).To(MatchError(ContainSubstring("parsing url failed")))
 			})
 		})
 
@@ -169,203 +175,69 @@ var _ = Describe("Layer source: Docker", func() {
 			})
 
 			It("wraps the containers/image with a useful error", func() {
-				_, err := layerSource.Manifest(logger, imageURL)
-				Expect(err.Error()).To(MatchRegexp("^fetching image reference"))
+				Expect(manifestErr.Error()).To(MatchRegexp("^fetching image reference"))
 			})
 
 			It("logs the original error message", func() {
-				_, err := layerSource.Manifest(logger, imageURL)
-				Expect(err).To(HaveOccurred())
-
 				Expect(logger).To(gbytes.Say("fetching-image-reference-failed"))
 				Expect(logger).To(gbytes.Say("unauthorized: authentication required"))
 			})
 		})
-	})
 
-	Describe("Config", func() {
-		It("fetches the config", func() {
-			manifest, err := layerSource.Manifest(logger, imageURL)
-			Expect(err).NotTo(HaveOccurred())
-			config, err := manifest.OCIConfig()
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(config.RootFS.DiffIDs).To(HaveLen(2))
-			Expect(config.RootFS.DiffIDs[0].Hex()).To(Equal(layerInfos[0].DiffID))
-			Expect(config.RootFS.DiffIDs[1].Hex()).To(Equal(layerInfos[1].DiffID))
-		})
-
-		Context("when the image is private", func() {
-			var manifest layerfetcher.Manifest
-
+		Context("when registry communication fails temporarily", func() {
 			BeforeEach(func() {
-				imageURL = urlParse("docker:///cfgarden/private")
-			})
-
-			JustBeforeEach(func() {
-				layerSource = source.NewLayerSource(systemContext, skipOCILayerValidation)
-				var err error
-				manifest, err = layerSource.Manifest(logger, imageURL)
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			Context("when the correct credentials are provided", func() {
-				It("fetches the config", func() {
-					config, err := manifest.OCIConfig()
-					Expect(err).NotTo(HaveOccurred())
-
-					Expect(config.RootFS.DiffIDs).To(HaveLen(2))
-					Expect(config.RootFS.DiffIDs[0].Hex()).To(Equal("780016ca8250bcbed0cbcf7b023c75550583de26629e135a1e31c0bf91fba296"))
-					Expect(config.RootFS.DiffIDs[1].Hex()).To(Equal("56702ece901015f4f42dc82d1386c5ffc13625c008890d52548ff30dd142838b"))
-				})
-			})
-		})
-
-		Context("when the image url is invalid", func() {
-			It("returns an error", func() {
-				url := urlParse("docker:cfgarden/empty:v0.1.0")
-
-				_, err := layerSource.Manifest(logger, url)
-				Expect(err).To(MatchError(ContainSubstring("parsing url failed")))
-			})
-		})
-
-		Context("when the image schema version is 1", func() {
-			BeforeEach(func() {
-				imageURL = urlParse("docker://cfgarden/empty:schemaV1")
-			})
-
-			It("fetches the config", func() {
-				manifest, err := layerSource.Manifest(logger, imageURL)
-				Expect(err).NotTo(HaveOccurred())
-				config, err := manifest.OCIConfig()
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(config.RootFS.DiffIDs).To(HaveLen(3))
-				Expect(config.RootFS.DiffIDs[0].String()).To(Equal(testhelpers.SchemaV1EmptyImage.Layers[0].DiffID))
-				Expect(config.RootFS.DiffIDs[1].String()).To(Equal(testhelpers.SchemaV1EmptyImage.Layers[1].DiffID))
-				Expect(config.RootFS.DiffIDs[2].String()).To(Equal(testhelpers.SchemaV1EmptyImage.Layers[2].DiffID))
-			})
-		})
-	})
-
-	Context("when registry communication fails temporarily", func() {
-		var fakeRegistry *testhelpers.FakeRegistry
-
-		BeforeEach(func() {
-			dockerHubUrl := urlParse("https://registry-1.docker.io")
-			fakeRegistry = testhelpers.NewFakeRegistry(dockerHubUrl)
-			fakeRegistry.Start()
-
-			systemContext.DockerInsecureSkipTLSVerify = true
-			imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:v0.1.1", fakeRegistry.Addr()))
-		})
-
-		AfterEach(func() {
-			fakeRegistry.Stop()
-		})
-
-		It("retries fetching the manifest twice", func() {
-			fakeRegistry.FailNextRequests(2)
-
-			_, err := layerSource.Manifest(logger, imageURL)
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(logger.TestSink.LogMessages()).To(ContainElement("test-layer-source.fetching-image-manifest.attempt-get-image-1"))
-			Expect(logger.TestSink.LogMessages()).To(ContainElement("test-layer-source.fetching-image-manifest.attempt-get-image-2"))
-			Expect(logger.TestSink.LogMessages()).To(ContainElement("test-layer-source.fetching-image-manifest.attempt-get-image-3"))
-			Expect(logger.TestSink.LogMessages()).To(ContainElement("test-layer-source.fetching-image-manifest.attempt-get-image-success"))
-		})
-
-		It("retries fetching a blob twice", func() {
-			fakeRegistry.FailNextRequests(2)
-
-			blobPath, _, err := layerSource.Blob(logger, imageURL, layerInfos[0])
-			Expect(err).NotTo(HaveOccurred())
-			Expect(os.Remove(blobPath)).To(Succeed())
-
-			expectedMessage := "test-layer-source.streaming-blob.attempt-get-blob-failed"
-			Expect(logger.TestSink.LogMessages()).To(ContainElement(expectedMessage))
-		})
-
-		It("retries fetching the config blob twice", func() {
-			fakeRegistry.WhenGettingBlob(configBlob, 1, func(resp http.ResponseWriter, req *http.Request) {
-				resp.WriteHeader(http.StatusTeapot)
-				_, _ = resp.Write([]byte("null"))
-				return
-			})
-
-			_, err := layerSource.Manifest(logger, imageURL)
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(fakeRegistry.RequestedBlobs()).To(Equal([]string{configBlob}), "config blob was not prefetched within the retry")
-
-			Expect(logger.TestSink.LogMessages()).To(
-				ContainElement("test-layer-source.fetching-image-manifest.fetching-image-config-failed"))
-		})
-	})
-
-	Context("when a private registry is used", func() {
-		var fakeRegistry *testhelpers.FakeRegistry
-
-		BeforeEach(func() {
-			dockerHubUrl := urlParse("https://registry-1.docker.io")
-			fakeRegistry = testhelpers.NewFakeRegistry(dockerHubUrl)
-			fakeRegistry.Start()
-
-			imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:v0.1.1", fakeRegistry.Addr()))
-
-		})
-
-		AfterEach(func() {
-			fakeRegistry.Stop()
-		})
-
-		It("fails to fetch the manifest", func() {
-			_, err := layerSource.Manifest(logger, imageURL)
-			Expect(err).To(HaveOccurred())
-		})
-
-		Context("when the private registry is whitelisted", func() {
-			BeforeEach(func() {
+				fakeRegistry.Start()
+				fakeRegistry.FailNextRequests(2)
 				systemContext.DockerInsecureSkipTLSVerify = true
+				imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:v0.1.1", fakeRegistry.Addr()))
 			})
 
-			It("fetches the manifest", func() {
-				manifest, err := layerSource.Manifest(logger, imageURL)
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(manifest.LayerInfos()).To(HaveLen(2))
-				Expect(manifest.LayerInfos()[0].Digest.String()).To(Equal(layerInfos[0].BlobID))
-				Expect(manifest.LayerInfos()[0].Size).To(Equal(layerInfos[0].Size))
-				Expect(manifest.LayerInfos()[1].Digest.String()).To(Equal(layerInfos[1].BlobID))
-				Expect(manifest.LayerInfos()[1].Size).To(Equal(layerInfos[1].Size))
+			AfterEach(func() {
+				fakeRegistry.Stop()
 			})
 
-			It("fetches the config", func() {
-				manifest, err := layerSource.Manifest(logger, imageURL)
-				Expect(err).NotTo(HaveOccurred())
-
-				config, err := manifest.OCIConfig()
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(config.RootFS.DiffIDs).To(HaveLen(2))
-				Expect(config.RootFS.DiffIDs[0].Hex()).To(Equal(layerInfos[0].DiffID))
-				Expect(config.RootFS.DiffIDs[1].Hex()).To(Equal(layerInfos[1].DiffID))
+			It("does not return an error", func() {
+				Expect(manifestErr).NotTo(HaveOccurred())
 			})
 
-			It("downloads and uncompresses the blob", func() {
-				blobPath, size, err := layerSource.Blob(logger, imageURL, layerInfos[0])
-				Expect(err).NotTo(HaveOccurred())
-				defer os.Remove(blobPath)
+			It("retries fetching the manifest twice", func() {
+				Expect(logger.TestSink.LogMessages()).To(ContainElement("test-layer-source.fetching-image-manifest.attempt-get-image-1"))
+				Expect(logger.TestSink.LogMessages()).To(ContainElement("test-layer-source.fetching-image-manifest.attempt-get-image-2"))
+				Expect(logger.TestSink.LogMessages()).To(ContainElement("test-layer-source.fetching-image-manifest.attempt-get-image-3"))
+				Expect(logger.TestSink.LogMessages()).To(ContainElement("test-layer-source.fetching-image-manifest.attempt-get-image-success"))
+			})
+		})
 
-				blobReader, err := os.Open(blobPath)
-				Expect(err).NotTo(HaveOccurred())
-				defer blobReader.Close()
+		Context("when a private registry is used", func() {
+			BeforeEach(func() {
+				fakeRegistry.Start()
+				imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:v0.1.1", fakeRegistry.Addr()))
+			})
 
-				Expect(size).To(Equal(int64(90)))
-				entries := tarEntries(blobReader)
-				Expect(entries).To(ContainElement("hello"))
+			AfterEach(func() {
+				fakeRegistry.Stop()
+			})
+
+			It("fails to fetch the manifest", func() {
+				Expect(manifestErr).To(HaveOccurred())
+			})
+
+			Context("when the private registry is whitelisted", func() {
+				BeforeEach(func() {
+					systemContext.DockerInsecureSkipTLSVerify = true
+				})
+
+				It("fetches the manifest", func() {
+					By("not returning an error")
+					Expect(manifestErr).NotTo(HaveOccurred())
+
+					By("fetching the manifest")
+					Expect(manifest.LayerInfos()).To(HaveLen(2))
+					Expect(manifest.LayerInfos()[0].Digest.String()).To(Equal(layerInfos[0].BlobID))
+					Expect(manifest.LayerInfos()[0].Size).To(Equal(layerInfos[0].Size))
+					Expect(manifest.LayerInfos()[1].Digest.String()).To(Equal(layerInfos[1].BlobID))
+					Expect(manifest.LayerInfos()[1].Size).To(Equal(layerInfos[1].Size))
+				})
 			})
 		})
 
@@ -379,45 +251,94 @@ var _ = Describe("Layer source: Docker", func() {
 				layerInfos[1].DiffID = "56702ece901015f4f42dc82d1386c5ffc13625c008890d52548ff30dd142838b"
 			})
 
-			JustBeforeEach(func() {
-				layerSource = source.NewLayerSource(systemContext, skipOCILayerValidation)
-			})
-
 			It("fetches the manifest", func() {
-				manifest, err := layerSource.Manifest(logger, imageURL)
-				Expect(err).NotTo(HaveOccurred())
+				By("not returning an error")
+				Expect(manifestErr).NotTo(HaveOccurred())
 
+				By("fetching the manifest")
 				Expect(manifest.LayerInfos()).To(HaveLen(2))
 				Expect(manifest.LayerInfos()[0].Digest.String()).To(Equal(layerInfos[0].BlobID))
 				Expect(manifest.LayerInfos()[0].Size).To(Equal(layerInfos[0].Size))
 				Expect(manifest.LayerInfos()[1].Digest.String()).To(Equal(layerInfos[1].BlobID))
 				Expect(manifest.LayerInfos()[1].Size).To(Equal(layerInfos[1].Size))
 			})
+		})
+	})
+
+	Describe("Config", func() {
+		var (
+			config    *v1.Image
+			configErr error
+		)
+
+		JustBeforeEach(func() {
+			manifest, err := layerSource.Manifest(logger, imageURL)
+			Expect(err).NotTo(HaveOccurred())
+			config, configErr = manifest.OCIConfig()
+		})
+
+		It("does not return an error", func() {
+			Expect(configErr).NotTo(HaveOccurred())
+		})
+
+		It("fetches the config", func() {
+			Expect(config.RootFS.DiffIDs).To(HaveLen(2))
+			Expect(config.RootFS.DiffIDs[0].Hex()).To(Equal(layerInfos[0].DiffID))
+			Expect(config.RootFS.DiffIDs[1].Hex()).To(Equal(layerInfos[1].DiffID))
+		})
+
+		Context("when the image is private", func() {
+			BeforeEach(func() {
+				imageURL = urlParse("docker:///cfgarden/private")
+			})
+
+			It("does not return an error", func() {
+				Expect(configErr).NotTo(HaveOccurred())
+			})
 
 			It("fetches the config", func() {
-				manifest, err := layerSource.Manifest(logger, imageURL)
-				Expect(err).NotTo(HaveOccurred())
+				Expect(config.RootFS.DiffIDs).To(HaveLen(2))
+				Expect(config.RootFS.DiffIDs[0].Hex()).To(Equal("780016ca8250bcbed0cbcf7b023c75550583de26629e135a1e31c0bf91fba296"))
+				Expect(config.RootFS.DiffIDs[1].Hex()).To(Equal("56702ece901015f4f42dc82d1386c5ffc13625c008890d52548ff30dd142838b"))
+			})
+		})
 
-				config, err := manifest.OCIConfig()
-				Expect(err).NotTo(HaveOccurred())
+		Context("when the image schema version is 1", func() {
+			BeforeEach(func() {
+				imageURL = urlParse("docker://cfgarden/empty:schemaV1")
+			})
 
+			It("does not return an error", func() {
+				Expect(configErr).NotTo(HaveOccurred())
+			})
+
+			It("fetches the config", func() {
+				Expect(config.RootFS.DiffIDs).To(HaveLen(3))
+				Expect(config.RootFS.DiffIDs[0].String()).To(Equal(testhelpers.SchemaV1EmptyImage.Layers[0].DiffID))
+				Expect(config.RootFS.DiffIDs[1].String()).To(Equal(testhelpers.SchemaV1EmptyImage.Layers[1].DiffID))
+				Expect(config.RootFS.DiffIDs[2].String()).To(Equal(testhelpers.SchemaV1EmptyImage.Layers[2].DiffID))
+			})
+		})
+
+		Context("when a private registry is used and it is whitelisted", func() {
+			BeforeEach(func() {
+				fakeRegistry.Start()
+				imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:v0.1.1", fakeRegistry.Addr()))
+				systemContext.DockerInsecureSkipTLSVerify = true
+			})
+
+			AfterEach(func() {
+				fakeRegistry.Stop()
+			})
+
+			It("fetches the config", func() {
+				By("not returning an error")
+				Expect(configErr).NotTo(HaveOccurred())
+
+				By("fetching the config")
 				Expect(config.RootFS.DiffIDs).To(HaveLen(2))
 				Expect(config.RootFS.DiffIDs[0].Hex()).To(Equal(layerInfos[0].DiffID))
 				Expect(config.RootFS.DiffIDs[1].Hex()).To(Equal(layerInfos[1].DiffID))
-			})
-
-			It("downloads and uncompresses the blob", func() {
-				blobPath, size, err := layerSource.Blob(logger, imageURL, layerInfos[0])
-				Expect(err).NotTo(HaveOccurred())
-				defer os.Remove(blobPath)
-
-				blobReader, err := os.Open(blobPath)
-				Expect(err).NotTo(HaveOccurred())
-				defer blobReader.Close()
-
-				Expect(size).To(Equal(int64(90)))
-				entries := tarEntries(blobReader)
-				Expect(entries).To(ContainElement("hello"))
 			})
 		})
 	})
@@ -452,20 +373,14 @@ var _ = Describe("Layer source: Docker", func() {
 		})
 
 		Context("when the media type doesn't match the blob", func() {
-			var fakeRegistry *testhelpers.FakeRegistry
-
 			BeforeEach(func() {
-				dockerHubUrl := urlParse("https://registry-1.docker.io")
-				fakeRegistry = testhelpers.NewFakeRegistry(dockerHubUrl)
-
 				fakeRegistry.WhenGettingBlob(layerInfos[0].BlobID, 1, func(rw http.ResponseWriter, req *http.Request) {
-					_, _ = rw.Write([]byte("bad-blob"))
+					_, _ = io.WriteString(rw, "bad-blob")
 				})
 
 				fakeRegistry.Start()
 
 				imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:v0.1.1", fakeRegistry.Addr()))
-
 				systemContext.DockerInsecureSkipTLSVerify = true
 				layerInfos[0].MediaType = "gzip"
 			})
@@ -493,31 +408,23 @@ var _ = Describe("Layer source: Docker", func() {
 				}
 			})
 
-			Context("when the correct credentials are provided", func() {
-				It("fetches the config", func() {
-					Expect(blobErr).NotTo(HaveOccurred())
+			It("downloads and uncompresses the blob", func() {
+				Expect(blobErr).NotTo(HaveOccurred())
 
-					blobReader, err := os.Open(blobPath)
-					Expect(err).NotTo(HaveOccurred())
-					defer blobReader.Close()
+				blobReader, err := os.Open(blobPath)
+				Expect(err).NotTo(HaveOccurred())
+				defer blobReader.Close()
 
-					Expect(blobSize).To(Equal(int64(90)))
-					entries := tarEntries(blobReader)
-					Expect(entries).To(ContainElement("hello"))
-				})
+				Expect(blobSize).To(Equal(int64(90)))
+				entries := tarEntries(blobReader)
+				Expect(entries).To(ContainElement("hello"))
 			})
 
 			Context("when invalid credentials are provided", func() {
-				// We need a fake registry here because Dockerhub was rate limiting on multiple bad credential auth attempts
-				var fakeRegistry *testhelpers.FakeRegistry
-
 				BeforeEach(func() {
-					dockerHubUrl := urlParse("https://registry-1.docker.io")
-					fakeRegistry = testhelpers.NewFakeRegistry(dockerHubUrl)
 					fakeRegistry.Start()
 					fakeRegistry.ForceTokenAuthError()
 					imageURL = urlParse(fmt.Sprintf("docker://%s/doesnt-matter-because-fake-registry", fakeRegistry.Addr()))
-
 					systemContext.DockerInsecureSkipTLSVerify = true
 				})
 
@@ -542,27 +449,24 @@ var _ = Describe("Layer source: Docker", func() {
 		})
 
 		Context("when the blob does not exist", func() {
+			BeforeEach(func() {
+				layerInfos[0] = imagepuller.LayerInfo{BlobID: "sha256:steamed-blob"}
+			})
+
 			It("returns an error", func() {
-				_, _, err := layerSource.Blob(logger, imageURL, imagepuller.LayerInfo{BlobID: "sha256:steamed-blob"})
-				Expect(err).To(MatchError(ContainSubstring("fetching blob 404")))
+				Expect(blobErr).To(MatchError(ContainSubstring("fetching blob 404")))
 			})
 		})
 
 		Context("when the blob is corrupted", func() {
-			var fakeRegistry *testhelpers.FakeRegistry
-
 			BeforeEach(func() {
-				dockerHubUrl := urlParse("https://registry-1.docker.io")
-				fakeRegistry = testhelpers.NewFakeRegistry(dockerHubUrl)
 				fakeRegistry.WhenGettingBlob(layerInfos[0].BlobID, 1, func(rw http.ResponseWriter, req *http.Request) {
 					gzipWriter := gzip.NewWriter(rw)
-					_, _ = gzipWriter.Write([]byte("bad-blob"))
+					_, _ = io.WriteString(gzipWriter, "bad-blob")
 					gzipWriter.Close()
 				})
 				fakeRegistry.Start()
-
 				imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:v0.1.1", fakeRegistry.Addr()))
-
 				systemContext.DockerInsecureSkipTLSVerify = true
 			})
 
@@ -592,6 +496,86 @@ var _ = Describe("Layer source: Docker", func() {
 
 			It("returns an error", func() {
 				Expect(blobErr).To(MatchError(ContainSubstring("diffID digest mismatch")))
+			})
+		})
+
+		Context("when registry communication fails temporarily", func() {
+			BeforeEach(func() {
+				fakeRegistry.Start()
+				systemContext.DockerInsecureSkipTLSVerify = true
+				imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:v0.1.1", fakeRegistry.Addr()))
+				fakeRegistry.FailNextRequests(2)
+			})
+
+			AfterEach(func() {
+				fakeRegistry.Stop()
+			})
+
+			It("retries fetching a blob twice", func() {
+				Expect(blobErr).NotTo(HaveOccurred())
+				expectedMessage := "test-layer-source.streaming-blob.attempt-get-blob-failed"
+				Expect(logger.TestSink.LogMessages()).To(ContainElement(expectedMessage))
+			})
+		})
+
+		Context("when a private registry is used", func() {
+			BeforeEach(func() {
+				fakeRegistry.Start()
+				imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:v0.1.1", fakeRegistry.Addr()))
+			})
+
+			AfterEach(func() {
+				fakeRegistry.Stop()
+			})
+
+			It("returns an error", func() {
+				Expect(blobErr).To(HaveOccurred())
+			})
+
+			Context("when the private registry is whitelisted", func() {
+				BeforeEach(func() {
+					systemContext.DockerInsecureSkipTLSVerify = true
+				})
+
+				It("downloads and uncompresses the blob", func() {
+					Expect(blobErr).NotTo(HaveOccurred())
+					defer os.Remove(blobPath)
+
+					blobReader, err := os.Open(blobPath)
+					Expect(err).NotTo(HaveOccurred())
+					defer blobReader.Close()
+
+					Expect(blobSize).To(Equal(int64(90)))
+					entries := tarEntries(blobReader)
+					Expect(entries).To(ContainElement("hello"))
+				})
+			})
+		})
+
+		Context("when registry communication fails temporarily", func() {
+			BeforeEach(func() {
+				fakeRegistry.Start()
+				systemContext.DockerInsecureSkipTLSVerify = true
+				imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:v0.1.1", fakeRegistry.Addr()))
+				fakeRegistry.WhenGettingBlob(layerInfos[0].BlobID, 1, func(resp http.ResponseWriter, req *http.Request) {
+					resp.WriteHeader(http.StatusTeapot)
+					_, _ = io.WriteString(resp, "null")
+					return
+				})
+			})
+
+			AfterEach(func() {
+				fakeRegistry.Stop()
+			})
+
+			It("retries fetching the blob twice", func() {
+				By("not returning an error")
+				Expect(blobErr).NotTo(HaveOccurred())
+
+				By("retrying to get the blob")
+				Expect(fakeRegistry.RequestedBlobs()).To(Equal([]string{layerInfos[0].BlobID}))
+				Expect(logger).To(gbytes.Say("test-layer-source.streaming-blob.attempt-get-blob-2"))
+				Expect(logger).To(gbytes.Say("test-layer-source.streaming-blob.attempt-get-blob-success"))
 			})
 		})
 	})

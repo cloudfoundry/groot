@@ -35,9 +35,6 @@ var _ = Describe("File Fetcher", func() {
 		sourceImagePath = tempDir()
 		Expect(ioutil.WriteFile(path.Join(sourceImagePath, "a_file"), []byte("hello-world"), 0600)).To(Succeed())
 		logger = lagertest.NewTestLogger("file-fetcher")
-	})
-
-	JustBeforeEach(func() {
 		imagePath = filepath.Join(sourceImagePath, "a_file")
 		imageURL = urlParse(imagePath)
 	})
@@ -48,44 +45,65 @@ var _ = Describe("File Fetcher", func() {
 	})
 
 	Describe("StreamBlob", func() {
-		It("returns the contents of the source file", func() {
-			stream, _, err := fetcher.StreamBlob(logger, imageURL, imagepuller.LayerInfo{})
-			Expect(err).ToNot(HaveOccurred())
-			defer stream.Close()
+		var (
+			stream    io.ReadCloser
+			streamErr error
+		)
 
-			streamContents, err := ioutil.ReadAll(stream)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(string(streamContents)).To(Equal("hello-world"))
+		JustBeforeEach(func() {
+			stream, _, streamErr = fetcher.StreamBlob(logger, imageURL, imagepuller.LayerInfo{})
+		})
+
+		AfterEach(func() {
+			if stream != nil {
+				Expect(stream.Close()).To(Succeed())
+			}
+		})
+
+		It("returns the contents of the source file", func() {
+			Expect(readAll(stream)).To(Equal("hello-world"))
 		})
 
 		Context("when the source is a directory", func() {
-			It("returns an error message", func() {
-				tempDir := tempDir()
-				defer os.RemoveAll(tempDir)
+			var tmpDir string
 
-				imageURL = urlParse(tempDir)
-				_, _, err := fetcher.StreamBlob(logger, imageURL, imagepuller.LayerInfo{})
-				Expect(err).To(MatchError(ContainSubstring("invalid base image: directory provided instead of a tar file")))
+			BeforeEach(func() {
+				tmpDir = tempDir()
+				imageURL = urlParse(tmpDir)
+			})
+
+			AfterEach(func() {
+				Expect(os.RemoveAll(tmpDir)).To(Succeed())
+			})
+
+			It("returns an error message", func() {
+				Expect(streamErr).To(MatchError(ContainSubstring("invalid base image: directory provided instead of a tar file")))
 			})
 		})
 
 		Context("when the source does not exist", func() {
-			It("returns an error", func() {
-				nonExistentImageURL := urlParse("/nothing/here")
+			BeforeEach(func() {
+				imageURL = urlParse("/nothing/here")
+			})
 
-				_, _, err := fetcher.StreamBlob(logger, nonExistentImageURL, imagepuller.LayerInfo{})
-				Expect(err).To(MatchError(ContainSubstring("local image not found in `/nothing/here`")))
+			It("returns an error", func() {
+				Expect(streamErr).To(MatchError(ContainSubstring("local image not found in `/nothing/here`")))
 			})
 		})
 	})
 
 	Describe("LayersDigest", func() {
-		var imageInfo imagepuller.ImageInfo
+		var (
+			imageInfo imagepuller.ImageInfo
+			infoErr   error
+		)
 
 		JustBeforeEach(func() {
-			var err error
-			imageInfo, err = fetcher.ImageInfo(logger, imageURL)
-			Expect(err).NotTo(HaveOccurred())
+			imageInfo, infoErr = fetcher.ImageInfo(logger, imageURL)
+		})
+
+		It("does not return an error", func() {
+			Expect(infoErr).NotTo(HaveOccurred())
 		})
 
 		It("returns the correct image", func() {
@@ -113,13 +131,12 @@ var _ = Describe("File Fetcher", func() {
 		})
 
 		Context("when the image doesn't exist", func() {
-			JustBeforeEach(func() {
+			BeforeEach(func() {
 				imageURL = urlParse("/not-here")
 			})
 
 			It("returns an error", func() {
-				_, err := fetcher.ImageInfo(logger, imageURL)
-				Expect(err).To(MatchError(ContainSubstring("fetching image timestamp")))
+				Expect(infoErr).To(MatchError(ContainSubstring("fetching image timestamp")))
 			})
 		})
 	})
