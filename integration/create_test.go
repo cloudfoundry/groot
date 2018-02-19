@@ -17,10 +17,12 @@ import (
 
 var _ = Describe("create", func() {
 	var (
-		rootfsURI string
-		imageSize int64
-		session   *gexec.Session
-		footCmd   *exec.Cmd
+		rootfsURI      string
+		imageSize      int64
+		session        *gexec.Session
+		footCmd        *exec.Cmd
+		driverStoreDir string
+		configFilePath string
 	)
 
 	BeforeEach(func() {

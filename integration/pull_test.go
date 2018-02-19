@@ -16,9 +16,11 @@ import (
 
 var _ = Describe("pull", func() {
 	var (
-		rootfsURI string
-		session   *gexec.Session
-		footCmd   *exec.Cmd
+		rootfsURI      string
+		session        *gexec.Session
+		footCmd        *exec.Cmd
+		driverStoreDir string
+		configFilePath string
 	)
 
 	BeforeEach(func() {

@@ -14,8 +14,6 @@ import (
 
 var (
 	footBinPath          string
-	driverStoreDir       string
-	configFilePath       string
 	notFoundRuntimeError = map[string]string{
 		"linux":   "no such file or directory",
 		"windows": "The system cannot find the file specified.",

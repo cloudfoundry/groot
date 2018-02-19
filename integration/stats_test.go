@@ -16,8 +16,9 @@ import (
 
 var _ = Describe("stats", func() {
 	var (
-		footCmd *exec.Cmd
-		session *gexec.Session
+		footCmd        *exec.Cmd
+		session        *gexec.Session
+		driverStoreDir string
 	)
 
 	BeforeEach(func() {

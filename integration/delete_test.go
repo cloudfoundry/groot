@@ -14,8 +14,9 @@ import (
 
 var _ = Describe("groot", func() {
 	var (
-		session *gexec.Session
-		footCmd *exec.Cmd
+		session        *gexec.Session
+		footCmd        *exec.Cmd
+		driverStoreDir string
 	)
 
 	Describe("delete", func() {
