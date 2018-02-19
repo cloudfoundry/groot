@@ -12,6 +12,7 @@ import (
 var _ = Describe("groot", func() {
 	Describe("delete", func() {
 		BeforeEach(func() {
+			env = []string{}
 			driverStoreDir = tempDir("", "groot-integration-tests")
 		})
 
