@@ -49,3 +49,9 @@ func urlParse(s string) *url.URL {
 	Expect(err).NotTo(HaveOccurred())
 	return u
 }
+
+func open(path string) *os.File {
+	f, err := os.Open(path)
+	Expect(err).NotTo(HaveOccurred())
+	return f
+}

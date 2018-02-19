@@ -360,16 +360,16 @@ var _ = Describe("Layer source: Docker", func() {
 			}
 		})
 
-		It("downloads and uncompresses the blob", func() {
+		It("does not return an error", func() {
 			Expect(blobErr).NotTo(HaveOccurred())
+		})
 
-			blobReader, err := os.Open(blobPath)
-			Expect(err).NotTo(HaveOccurred())
+		It("downloads and uncompresses the blob", func() {
+			blobReader := open(blobPath)
 			defer blobReader.Close()
 
 			Expect(blobSize).To(Equal(int64(90)))
-			entries := tarEntries(blobReader)
-			Expect(entries).To(ContainElement("hello"))
+			expectTarArchiveToContainHello(blobReader)
 		})
 
 		Context("when the media type doesn't match the blob", func() {
@@ -408,16 +408,16 @@ var _ = Describe("Layer source: Docker", func() {
 				}
 			})
 
-			It("downloads and uncompresses the blob", func() {
+			It("does not return an error", func() {
 				Expect(blobErr).NotTo(HaveOccurred())
+			})
 
-				blobReader, err := os.Open(blobPath)
-				Expect(err).NotTo(HaveOccurred())
+			It("downloads and uncompresses the blob", func() {
+				blobReader := open(blobPath)
 				defer blobReader.Close()
 
 				Expect(blobSize).To(Equal(int64(90)))
-				entries := tarEntries(blobReader)
-				Expect(entries).To(ContainElement("hello"))
+				expectTarArchiveToContainHello(blobReader)
 			})
 
 			Context("when invalid credentials are provided", func() {
@@ -537,17 +537,16 @@ var _ = Describe("Layer source: Docker", func() {
 					systemContext.DockerInsecureSkipTLSVerify = true
 				})
 
-				It("downloads and uncompresses the blob", func() {
+				It("does not return an error", func() {
 					Expect(blobErr).NotTo(HaveOccurred())
-					defer os.Remove(blobPath)
+				})
 
-					blobReader, err := os.Open(blobPath)
-					Expect(err).NotTo(HaveOccurred())
+				It("downloads and uncompresses the blob", func() {
+					blobReader := open(blobPath)
 					defer blobReader.Close()
 
 					Expect(blobSize).To(Equal(int64(90)))
-					entries := tarEntries(blobReader)
-					Expect(entries).To(ContainElement("hello"))
+					expectTarArchiveToContainHello(blobReader)
 				})
 			})
 		})
@@ -580,3 +579,8 @@ var _ = Describe("Layer source: Docker", func() {
 		})
 	})
 })
+
+func expectTarArchiveToContainHello(tar io.Reader) {
+	entries := tarEntries(tar)
+	Expect(entries).To(ContainElement("hello"))
+}
