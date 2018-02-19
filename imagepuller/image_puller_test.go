@@ -54,16 +54,13 @@ var _ = Describe("Image Puller", func() {
 			return ioutil.NopCloser(buffer), 0, nil
 		}
 
-		var err error
-		tmpVolumesDir, err = ioutil.TempDir("", "volumes")
-		Expect(err).NotTo(HaveOccurred())
+		tmpVolumesDir = tempDir("", "volumes")
 
 		fakeVolumeDriver = new(imagepullerfakes.FakeVolumeDriver)
 		imagePuller = imagepuller.NewImagePuller(fakeFetcher, fakeVolumeDriver)
 		logger = lagertest.NewTestLogger("image-puller")
 
-		imageSrcURL, err = url.Parse("docker:///an/image")
-		Expect(err).NotTo(HaveOccurred())
+		imageSrcURL = urlParse("docker:///an/image")
 	})
 
 	AfterEach(func() {
@@ -118,8 +115,7 @@ var _ = Describe("Image Puller", func() {
 			buffer := bytes.NewBuffer([]byte{})
 			stream := gzip.NewWriter(buffer)
 			defer stream.Close()
-			_, err := stream.Write([]byte(fmt.Sprintf("layer-%s-contents", layerInfo.BlobID)))
-			Expect(err).NotTo(HaveOccurred())
+			writeString(stream, fmt.Sprintf("layer-%s-contents", layerInfo.BlobID))
 			return ioutil.NopCloser(buffer), 1200, nil
 		}
 
@@ -132,11 +128,7 @@ var _ = Describe("Image Puller", func() {
 
 		validateLayer := func(idx int, expected string) {
 			_, _, _, stream := fakeVolumeDriver.UnpackArgsForCall(idx)
-			gzipReader, err := gzip.NewReader(stream)
-			Expect(err).NotTo(HaveOccurred())
-			contents, err := ioutil.ReadAll(gzipReader)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(string(contents)).To(Equal(expected))
+			Expect(readAll(gzipNewReader(stream))).To(Equal(expected))
 		}
 
 		validateLayer(0, "layer-i-am-a-layer-contents")

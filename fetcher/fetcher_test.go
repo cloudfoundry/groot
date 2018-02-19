@@ -34,9 +34,7 @@ var _ = Describe("Fetcher", func() {
 
 	Context("when the rootfsURI contains the docker scheme", func() {
 		BeforeEach(func() {
-			var err error
-			imageURL, err = url.Parse("docker:///hello")
-			Expect(err).NotTo(HaveOccurred())
+			imageURL = urlParse("docker:///hello")
 		})
 
 		Describe("ImageInfo", func() {
@@ -60,9 +58,7 @@ var _ = Describe("Fetcher", func() {
 
 	Context("when the rootfsURI contains the oci scheme", func() {
 		BeforeEach(func() {
-			var err error
-			imageURL, err = url.Parse("oci:///hello")
-			Expect(err).NotTo(HaveOccurred())
+			imageURL = urlParse("oci:///hello")
 		})
 
 		Describe("ImageInfo", func() {
@@ -86,9 +82,7 @@ var _ = Describe("Fetcher", func() {
 
 	Context("when the rootfsURI doesn't contain a scheme", func() {
 		BeforeEach(func() {
-			var err error
-			imageURL, err = url.Parse("/hello")
-			Expect(err).NotTo(HaveOccurred())
+			imageURL = urlParse("/hello")
 		})
 
 		Describe("ImageInfo", func() {
@@ -112,9 +106,7 @@ var _ = Describe("Fetcher", func() {
 
 	Context("when the rootfsURI contains a drive letter", func() {
 		BeforeEach(func() {
-			var err error
-			imageURL, err = url.Parse("c:/hello")
-			Expect(err).NotTo(HaveOccurred())
+			imageURL = urlParse("c:/hello")
 		})
 
 		Describe("ImageInfo", func() {

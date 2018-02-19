@@ -39,9 +39,7 @@ var _ = Describe("File Fetcher", func() {
 
 	JustBeforeEach(func() {
 		imagePath = filepath.Join(sourceImagePath, "a_file")
-		var err error
-		imageURL, err = url.Parse(imagePath)
-		Expect(err).NotTo(HaveOccurred())
+		imageURL = urlParse(imagePath)
 	})
 
 	AfterEach(func() {
@@ -65,7 +63,7 @@ var _ = Describe("File Fetcher", func() {
 				tempDir := tempDir()
 				defer os.RemoveAll(tempDir)
 
-				imageURL, _ := url.Parse(tempDir)
+				imageURL = urlParse(tempDir)
 				_, _, err := fetcher.StreamBlob(logger, imageURL, imagepuller.LayerInfo{})
 				Expect(err).To(MatchError(ContainSubstring("invalid base image: directory provided instead of a tar file")))
 			})
@@ -73,7 +71,7 @@ var _ = Describe("File Fetcher", func() {
 
 		Context("when the source does not exist", func() {
 			It("returns an error", func() {
-				nonExistentImageURL, _ := url.Parse("/nothing/here")
+				nonExistentImageURL := urlParse("/nothing/here")
 
 				_, _, err := fetcher.StreamBlob(logger, nonExistentImageURL, imagepuller.LayerInfo{})
 				Expect(err).To(MatchError(ContainSubstring("local image not found in `/nothing/here`")))
@@ -116,9 +114,7 @@ var _ = Describe("File Fetcher", func() {
 
 		Context("when the image doesn't exist", func() {
 			JustBeforeEach(func() {
-				var err error
-				imageURL, err = url.Parse("/not-here")
-				Expect(err).ToNot(HaveOccurred())
+				imageURL = urlParse("/not-here")
 			})
 
 			It("returns an error", func() {
