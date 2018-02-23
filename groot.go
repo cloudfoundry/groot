@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"os"
 
-	"code.cloudfoundry.org/groot/fetcher"
 	"code.cloudfoundry.org/groot/fetcher/filefetcher"
 	"code.cloudfoundry.org/groot/fetcher/layerfetcher"
 	"code.cloudfoundry.org/groot/fetcher/layerfetcher/source"
@@ -60,6 +59,7 @@ func Run(driver Driver, argv []string, driverFlags []cli.Flag) {
 	// The `Before` closure sets this. This is ugly, but we don't know the log
 	// level until the CLI framework has parsed the flags.
 	var g *Groot
+	var err error
 
 	app := cli.NewApp()
 	app.Usage = "A garden image plugin"
@@ -84,13 +84,14 @@ func Run(driver Driver, argv []string, driverFlags []cli.Flag) {
 				},
 			},
 			Action: func(ctx *cli.Context) error {
-				rootfsURI, err := url.Parse(ctx.Args()[0])
+				g.ImagePuller, err = createImagePuller(ctx.Args()[0], driver)
 				if err != nil {
 					return err
 				}
 
 				handle := ctx.Args()[1]
-				runtimeSpec, err := g.Create(handle, rootfsURI, ctx.Int64("disk-limit-size-bytes"), ctx.Bool("exclude-image-from-quota"))
+				var runtimeSpec runspec.Spec
+				runtimeSpec, err = g.Create(handle, ctx.Int64("disk-limit-size-bytes"), ctx.Bool("exclude-image-from-quota"))
 				if err != nil {
 					return err
 				}
@@ -101,12 +102,11 @@ func Run(driver Driver, argv []string, driverFlags []cli.Flag) {
 		{
 			Name: "pull",
 			Action: func(ctx *cli.Context) error {
-				rootfsURI, err := url.Parse(ctx.Args()[0])
+				g.ImagePuller, err = createImagePuller(ctx.Args()[0], driver)
 				if err != nil {
 					return err
 				}
-
-				return g.Pull(rootfsURI)
+				return g.Pull()
 			},
 		},
 		{
@@ -133,9 +133,15 @@ func Run(driver Driver, argv []string, driverFlags []cli.Flag) {
 		if err != nil {
 			return silentError(err)
 		}
-		g, err = newGroot(driver, conf)
+
+		logger, err := newLogger(conf.LogLevel)
 		if err != nil {
-			return silentError(err)
+			return err
+		}
+
+		g = &Groot{
+			Driver: driver,
+			Logger: logger,
 		}
 		return nil
 	}
@@ -148,27 +154,12 @@ func Run(driver Driver, argv []string, driverFlags []cli.Flag) {
 	}
 }
 
-func newGroot(driver Driver, conf config) (*Groot, error) {
-	logger, err := newLogger(conf.LogLevel)
-	if err != nil {
-		return nil, err
+func createFetcher(url *url.URL) imagepuller.Fetcher {
+	if url.Scheme == "oci" || url.Scheme == "docker" {
+		layerSource := source.NewLayerSource(types.SystemContext{}, false, url)
+		return layerfetcher.NewLayerFetcher(&layerSource)
 	}
-
-	fileFetcher := filefetcher.NewFileFetcher()
-	source := source.NewLayerSource(types.SystemContext{}, false)
-	layerFetcher := layerfetcher.NewLayerFetcher(&source)
-	fetcher := fetcher.Fetcher{
-		FileFetcher:  fileFetcher,
-		LayerFetcher: layerFetcher,
-	}
-
-	imagePuller := imagepuller.NewImagePuller(&fetcher, driver)
-
-	return &Groot{
-		Driver:      driver,
-		Logger:      logger,
-		ImagePuller: imagePuller,
-	}, nil
+	return filefetcher.NewFileFetcher(url)
 }
 
 func newLogger(logLevelStr string) (lager.Logger, error) {
@@ -188,6 +179,16 @@ func newLogger(logLevelStr string) (lager.Logger, error) {
 	logger.RegisterSink(lager.NewWriterSink(os.Stderr, logLevel))
 
 	return logger, nil
+}
+
+func createImagePuller(imageURL string, driver Driver) (*imagepuller.ImagePuller, error) {
+	rootfsURL, err := url.Parse(imageURL)
+	if err != nil {
+		return nil, err
+	}
+
+	fetcher := createFetcher(rootfsURL)
+	return imagepuller.NewImagePuller(fetcher, driver), nil
 }
 
 // SilentError silences errors. urfave/cli already prints certain errors, we

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net/url"
 	"os"
 
 	"code.cloudfoundry.org/groot/imagepuller"
@@ -29,7 +28,6 @@ var _ = Describe("Image Puller", func() {
 		imagePuller *imagepuller.ImagePuller
 		layerInfos  []imagepuller.LayerInfo
 
-		imageSrcURL   *url.URL
 		tmpVolumesDir string
 	)
 
@@ -47,7 +45,7 @@ var _ = Describe("Image Puller", func() {
 				Config:     expectedImgDesc,
 			}, nil)
 
-		fakeFetcher.StreamBlobStub = func(_ lager.Logger, imageURL *url.URL, layerInfo imagepuller.LayerInfo) (io.ReadCloser, int64, error) {
+		fakeFetcher.StreamBlobStub = func(_ lager.Logger, layerInfo imagepuller.LayerInfo) (io.ReadCloser, int64, error) {
 			buffer := bytes.NewBuffer([]byte{})
 			stream := gzip.NewWriter(buffer)
 			defer stream.Close()
@@ -59,8 +57,6 @@ var _ = Describe("Image Puller", func() {
 		fakeVolumeDriver = new(imagepullerfakes.FakeVolumeDriver)
 		imagePuller = imagepuller.NewImagePuller(fakeFetcher, fakeVolumeDriver)
 		logger = lagertest.NewTestLogger("image-puller")
-
-		imageSrcURL = urlParse("docker:///an/image")
 	})
 
 	AfterEach(func() {
@@ -68,35 +64,24 @@ var _ = Describe("Image Puller", func() {
 	})
 
 	It("returns the image description", func() {
-		image, err := imagePuller.Pull(logger, imagepuller.ImageSpec{
-			ImageSrc: imageSrcURL,
-		})
+		image, err := imagePuller.Pull(logger, imagepuller.ImageSpec{})
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(image.Image).To(Equal(expectedImgDesc))
 	})
 
 	It("returns the chain ids in the order specified by the image", func() {
-		image, err := imagePuller.Pull(logger, imagepuller.ImageSpec{
-			ImageSrc: imageSrcURL,
-		})
-		Expect(err).NotTo(HaveOccurred())
+		image, _ := imagePuller.Pull(logger, imagepuller.ImageSpec{})
 		Expect(image.ChainIDs).To(Equal([]string{"layer-111", "chain-222", "chain-333"}))
 	})
 
 	It("returns the total size of the base image", func() {
-		image, err := imagePuller.Pull(logger, imagepuller.ImageSpec{
-			ImageSrc: imageSrcURL,
-		})
-		Expect(err).NotTo(HaveOccurred())
+		image, _ := imagePuller.Pull(logger, imagepuller.ImageSpec{})
 		Expect(image.BaseImageSize).To(Equal(int64(666)))
 	})
 
 	It("passes the correct parentIDs to Unpack", func() {
-		_, err := imagePuller.Pull(logger, imagepuller.ImageSpec{
-			ImageSrc: imageSrcURL,
-		})
-		Expect(err).NotTo(HaveOccurred())
+		imagePuller.Pull(logger, imagepuller.ImageSpec{})
 
 		Expect(fakeVolumeDriver.UnpackCallCount()).To(Equal(3))
 
@@ -109,9 +94,7 @@ var _ = Describe("Image Puller", func() {
 	})
 
 	It("unpacks the layers got from the fetcher", func() {
-		fakeFetcher.StreamBlobStub = func(_ lager.Logger, imageURL *url.URL, layerInfo imagepuller.LayerInfo) (io.ReadCloser, int64, error) {
-			Expect(imageURL).To(Equal(imageSrcURL))
-
+		fakeFetcher.StreamBlobStub = func(_ lager.Logger, layerInfo imagepuller.LayerInfo) (io.ReadCloser, int64, error) {
 			buffer := bytes.NewBuffer([]byte{})
 			stream := gzip.NewWriter(buffer)
 			defer stream.Close()
@@ -119,10 +102,7 @@ var _ = Describe("Image Puller", func() {
 			return ioutil.NopCloser(buffer), 1200, nil
 		}
 
-		_, err := imagePuller.Pull(logger, imagepuller.ImageSpec{
-			ImageSrc: imageSrcURL,
-		})
-		Expect(err).NotTo(HaveOccurred())
+		imagePuller.Pull(logger, imagepuller.ImageSpec{})
 
 		Expect(fakeVolumeDriver.UnpackCallCount()).To(Equal(3))
 
@@ -147,7 +127,6 @@ var _ = Describe("Image Puller", func() {
 				}, nil)
 
 				_, err := imagePuller.Pull(logger, imagepuller.ImageSpec{
-					ImageSrc:              imageSrcURL,
 					DiskLimit:             1200,
 					ExcludeImageFromQuota: false,
 				})
@@ -164,7 +143,6 @@ var _ = Describe("Image Puller", func() {
 					}, nil)
 
 					_, err := imagePuller.Pull(logger, imagepuller.ImageSpec{
-						ImageSrc:              imageSrcURL,
 						DiskLimit:             0,
 						ExcludeImageFromQuota: false,
 					})
@@ -184,7 +162,6 @@ var _ = Describe("Image Puller", func() {
 				}, nil)
 
 				_, err := imagePuller.Pull(logger, imagepuller.ImageSpec{
-					ImageSrc:              imageSrcURL,
 					DiskLimit:             1024,
 					ExcludeImageFromQuota: true,
 				})
@@ -203,9 +180,7 @@ var _ = Describe("Image Puller", func() {
 		})
 
 		It("returns an error", func() {
-			_, err := imagePuller.Pull(logger, imagepuller.ImageSpec{
-				ImageSrc: imageSrcURL,
-			})
+			_, err := imagePuller.Pull(logger, imagepuller.ImageSpec{})
 			Expect(err).To(MatchError(ContainSubstring("failed to get list of layers")))
 		})
 	})
@@ -216,9 +191,7 @@ var _ = Describe("Image Puller", func() {
 		})
 
 		It("does not try to unpack any layer", func() {
-			_, err := imagePuller.Pull(logger, imagepuller.ImageSpec{
-				ImageSrc: imageSrcURL,
-			})
+			_, err := imagePuller.Pull(logger, imagepuller.ImageSpec{})
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(fakeVolumeDriver.UnpackCallCount()).To(Equal(0))
@@ -236,9 +209,7 @@ var _ = Describe("Image Puller", func() {
 		})
 
 		It("only creates the children of the existing volume", func() {
-			_, err := imagePuller.Pull(logger, imagepuller.ImageSpec{
-				ImageSrc: imageSrcURL,
-			})
+			_, err := imagePuller.Pull(logger, imagepuller.ImageSpec{})
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(fakeVolumeDriver.UnpackCallCount()).To(Equal(1))
@@ -253,9 +224,7 @@ var _ = Describe("Image Puller", func() {
 		})
 
 		It("returns an error", func() {
-			_, err := imagePuller.Pull(logger, imagepuller.ImageSpec{
-				ImageSrc: imageSrcURL,
-			})
+			_, err := imagePuller.Pull(logger, imagepuller.ImageSpec{})
 			Expect(err).To(MatchError(ContainSubstring("failed to create volume")))
 		})
 	})
@@ -266,7 +235,7 @@ var _ = Describe("Image Puller", func() {
 		})
 
 		It("returns an error", func() {
-			_, err := imagePuller.Pull(logger, imagepuller.ImageSpec{ImageSrc: imageSrcURL})
+			_, err := imagePuller.Pull(logger, imagepuller.ImageSpec{})
 			Expect(err).To(MatchError(ContainSubstring("failed to stream blob")))
 		})
 	})
@@ -285,7 +254,7 @@ var _ = Describe("Image Puller", func() {
 		})
 
 		It("returns an error", func() {
-			_, err := imagePuller.Pull(logger, imagepuller.ImageSpec{ImageSrc: imageSrcURL})
+			_, err := imagePuller.Pull(logger, imagepuller.ImageSpec{})
 			Expect(err).To(MatchError(ContainSubstring("failed to unpack the blob")))
 		})
 	})

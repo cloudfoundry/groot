@@ -68,7 +68,7 @@ var _ = Describe("Layer source: Docker", func() {
 	})
 
 	JustBeforeEach(func() {
-		layerSource = source.NewLayerSource(systemContext, skipOCILayerValidation)
+		layerSource = source.NewLayerSource(systemContext, skipOCILayerValidation, imageURL)
 	})
 
 	Describe("Manifest", func() {
@@ -78,7 +78,7 @@ var _ = Describe("Layer source: Docker", func() {
 		)
 
 		JustBeforeEach(func() {
-			manifest, manifestErr = layerSource.Manifest(logger, imageURL)
+			manifest, manifestErr = layerSource.Manifest(logger)
 		})
 
 		It("fetches the manifest", func() {
@@ -272,7 +272,7 @@ var _ = Describe("Layer source: Docker", func() {
 		)
 
 		JustBeforeEach(func() {
-			manifest, err := layerSource.Manifest(logger, imageURL)
+			manifest, err := layerSource.Manifest(logger)
 			Expect(err).NotTo(HaveOccurred())
 			config, configErr = manifest.OCIConfig()
 		})
@@ -351,7 +351,7 @@ var _ = Describe("Layer source: Docker", func() {
 		)
 
 		JustBeforeEach(func() {
-			blobPath, blobSize, blobErr = layerSource.Blob(logger, imageURL, layerInfos[0])
+			blobPath, blobSize, blobErr = layerSource.Blob(logger, layerInfos[0])
 		})
 
 		AfterEach(func() {

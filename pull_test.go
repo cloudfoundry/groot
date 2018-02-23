@@ -2,11 +2,7 @@ package groot_test
 
 import (
 	"bytes"
-	"fmt"
 	"io"
-	"io/ioutil"
-	"net/url"
-	"os"
 
 	"code.cloudfoundry.org/groot"
 	"code.cloudfoundry.org/groot/grootfakes"
@@ -25,17 +21,9 @@ var _ = Describe("Pull", func() {
 
 		logger *lagertest.TestLogger
 		g      *groot.Groot
-
-		rootfsSource *url.URL
 	)
 
 	BeforeEach(func() {
-		tempFile, err := ioutil.TempFile("", "groot-unit-tests")
-		Expect(err).NotTo(HaveOccurred())
-		fmt.Fprint(tempFile, "afile")
-		rootfsSource, err = url.Parse(tempFile.Name())
-		Expect(err).NotTo(HaveOccurred())
-		Expect(tempFile.Close()).To(Succeed())
 
 		imagePuller = new(grootfakes.FakeImagePuller)
 		driver = new(grootfakes.FakeDriver)
@@ -50,10 +38,6 @@ var _ = Describe("Pull", func() {
 			Logger:      logger,
 			ImagePuller: imagePuller,
 		}
-	})
-
-	AfterEach(func() {
-		Expect(os.Remove(rootfsSource.String())).To(Succeed())
 	})
 
 	Describe("Pull succeeding", func() {
@@ -71,13 +55,13 @@ var _ = Describe("Pull", func() {
 		})
 
 		JustBeforeEach(func() {
-			Expect(g.Pull(rootfsSource)).To(Succeed())
+			Expect(g.Pull()).To(Succeed())
 		})
 
 		It("calls the image puller with the expected args", func() {
 			Expect(imagePuller.PullCallCount()).To(Equal(1))
 			_, spec := imagePuller.PullArgsForCall(0)
-			Expect(spec.ImageSrc).To(Equal(rootfsSource))
+			Expect(spec).To(Equal(imagepuller.ImageSpec{}))
 		})
 
 		Context("when the layer already exists", func() {
@@ -97,7 +81,7 @@ var _ = Describe("Pull", func() {
 		)
 
 		JustBeforeEach(func() {
-			pullErr = g.Pull(rootfsSource)
+			pullErr = g.Pull()
 		})
 
 		Context("when image puller returns an error", func() {

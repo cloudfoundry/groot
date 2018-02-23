@@ -55,12 +55,12 @@ var _ = Describe("Layer source: OCI", func() {
 	})
 
 	JustBeforeEach(func() {
-		layerSource = source.NewLayerSource(systemContext, skipOCILayerValidation)
+		layerSource = source.NewLayerSource(systemContext, skipOCILayerValidation, imageURL)
 	})
 
 	Describe("Manifest", func() {
 		It("fetches the manifest", func() {
-			manifest, err := layerSource.Manifest(logger, imageURL)
+			manifest, err := layerSource.Manifest(logger)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(manifest.ConfigInfo().Digest.String()).To(Equal(configBlob))
@@ -73,7 +73,7 @@ var _ = Describe("Layer source: OCI", func() {
 		})
 
 		It("contains the config", func() {
-			manifest, err := layerSource.Manifest(logger, imageURL)
+			manifest, err := layerSource.Manifest(logger)
 			Expect(err).NotTo(HaveOccurred())
 
 			config, err := manifest.OCIConfig()
@@ -85,10 +85,11 @@ var _ = Describe("Layer source: OCI", func() {
 		})
 
 		Context("when the image url is invalid", func() {
-			It("returns an error", func() {
+			BeforeEach(func() {
 				imageURL = urlParse("oci://///cfgarden/empty:v0.1.0")
-
-				_, err := layerSource.Manifest(logger, imageURL)
+			})
+			It("returns an error", func() {
+				_, err := layerSource.Manifest(logger)
 				Expect(err).To(MatchError(ContainSubstring("parsing url failed")))
 			})
 		})
@@ -99,7 +100,7 @@ var _ = Describe("Layer source: OCI", func() {
 			})
 
 			It("wraps the containers/image with a useful error", func() {
-				_, err := layerSource.Manifest(logger, imageURL)
+				_, err := layerSource.Manifest(logger)
 				Expect(err.Error()).To(MatchRegexp("^fetching image reference"))
 			})
 		})
@@ -110,7 +111,7 @@ var _ = Describe("Layer source: OCI", func() {
 			})
 
 			It("retuns an error", func() {
-				_, err := layerSource.Manifest(logger, imageURL)
+				_, err := layerSource.Manifest(logger)
 				Expect(err).To(MatchError(ContainSubstring("creating image")))
 			})
 		})
@@ -130,7 +131,7 @@ var _ = Describe("Layer source: OCI", func() {
 		})
 
 		JustBeforeEach(func() {
-			blobPath, blobSize, blobErr = layerSource.Blob(logger, imageURL, layerInfo)
+			blobPath, blobSize, blobErr = layerSource.Blob(logger, layerInfo)
 		})
 
 		AfterEach(func() {
@@ -189,7 +190,7 @@ var _ = Describe("Layer source: OCI", func() {
 				})
 
 				It("does not validate layer size", func() {
-					_, _, err := layerSource.Blob(logger, imageURL, layerInfo)
+					_, _, err := layerSource.Blob(logger, layerInfo)
 					Expect(err).NotTo(HaveOccurred())
 				})
 			})
@@ -211,7 +212,7 @@ var _ = Describe("Layer source: OCI", func() {
 			})
 
 			It("returns an error", func() {
-				_, _, err := layerSource.Blob(logger, imageURL, layerInfo)
+				_, _, err := layerSource.Blob(logger, layerInfo)
 				Expect(err).To(MatchError(ContainSubstring("layer size is greater than the value in the manifest")))
 			})
 		})
@@ -222,7 +223,7 @@ var _ = Describe("Layer source: OCI", func() {
 			})
 
 			It("returns an error", func() {
-				_, _, err := layerSource.Blob(logger, imageURL, layerInfo)
+				_, _, err := layerSource.Blob(logger, layerInfo)
 				Expect(err).To(MatchError(ContainSubstring("layer size is less than the value in the manifest")))
 			})
 		})

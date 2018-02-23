@@ -30,13 +30,16 @@ var _ = Describe("File Fetcher", func() {
 	)
 
 	BeforeEach(func() {
-		fetcher = filefetcher.NewFileFetcher()
-
 		sourceImagePath = tempDir()
-		Expect(ioutil.WriteFile(path.Join(sourceImagePath, "a_file"), []byte("hello-world"), 0600)).To(Succeed())
-		logger = lagertest.NewTestLogger("file-fetcher")
 		imagePath = filepath.Join(sourceImagePath, "a_file")
 		imageURL = urlParse(imagePath)
+
+		Expect(ioutil.WriteFile(path.Join(sourceImagePath, "a_file"), []byte("hello-world"), 0600)).To(Succeed())
+		logger = lagertest.NewTestLogger("file-fetcher")
+	})
+
+	JustBeforeEach(func() {
+		fetcher = filefetcher.NewFileFetcher(imageURL)
 	})
 
 	AfterEach(func() {
@@ -51,7 +54,7 @@ var _ = Describe("File Fetcher", func() {
 		)
 
 		JustBeforeEach(func() {
-			stream, _, streamErr = fetcher.StreamBlob(logger, imageURL, imagepuller.LayerInfo{})
+			stream, _, streamErr = fetcher.StreamBlob(logger, imagepuller.LayerInfo{})
 		})
 
 		AfterEach(func() {
@@ -99,7 +102,7 @@ var _ = Describe("File Fetcher", func() {
 		)
 
 		JustBeforeEach(func() {
-			imageInfo, infoErr = fetcher.ImageInfo(logger, imageURL)
+			imageInfo, infoErr = fetcher.ImageInfo(logger)
 		})
 
 		It("does not return an error", func() {
@@ -124,7 +127,7 @@ var _ = Describe("File Fetcher", func() {
 			})
 
 			It("generates another chain id", func() {
-				newImageInfo, err := fetcher.ImageInfo(logger, imageURL)
+				newImageInfo, err := fetcher.ImageInfo(logger)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(imageInfo.LayerInfos[0].ChainID).NotTo(Equal(newImageInfo.LayerInfos[0].ChainID))
 			})

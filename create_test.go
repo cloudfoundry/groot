@@ -2,11 +2,7 @@ package groot_test
 
 import (
 	"bytes"
-	"fmt"
 	"io"
-	"io/ioutil"
-	"net/url"
-	"os"
 
 	"code.cloudfoundry.org/groot"
 	"code.cloudfoundry.org/groot/grootfakes"
@@ -29,18 +25,9 @@ var _ = Describe("Create", func() {
 
 		logger *lagertest.TestLogger
 		g      *groot.Groot
-
-		rootfsSource *url.URL
 	)
 
 	BeforeEach(func() {
-		tempFile, err := ioutil.TempFile("", "groot-unit-tests")
-		Expect(err).NotTo(HaveOccurred())
-		fmt.Fprint(tempFile, "afile")
-		rootfsSource, err = url.Parse(tempFile.Name())
-		Expect(err).NotTo(HaveOccurred())
-		Expect(tempFile.Close()).To(Succeed())
-
 		driver = new(grootfakes.FakeDriver)
 		driver.BundleReturns(driverRuntimeSpec, nil)
 		imagePuller = new(grootfakes.FakeImagePuller)
@@ -61,10 +48,6 @@ var _ = Describe("Create", func() {
 		excludeImageFromQuota = true
 	})
 
-	AfterEach(func() {
-		Expect(os.Remove(rootfsSource.String())).To(Succeed())
-	})
-
 	Describe("Create succeeding", func() {
 		var (
 			returnedRuntimeSpec specs.Spec
@@ -82,14 +65,17 @@ var _ = Describe("Create", func() {
 
 		JustBeforeEach(func() {
 			var err error
-			returnedRuntimeSpec, err = g.Create("some-handle", rootfsSource, diskLimit, excludeImageFromQuota)
+			returnedRuntimeSpec, err = g.Create("some-handle", diskLimit, excludeImageFromQuota)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("calls the image puller with the expected args", func() {
 			Expect(imagePuller.PullCallCount()).To(Equal(1))
 			_, spec := imagePuller.PullArgsForCall(0)
-			Expect(spec.ImageSrc).To(Equal(rootfsSource))
+			Expect(spec).To(Equal(imagepuller.ImageSpec{
+				DiskLimit:             diskLimit,
+				ExcludeImageFromQuota: excludeImageFromQuota,
+			}))
 		})
 
 		It("returns the runtime spec from driver.Bundle", func() {
@@ -159,7 +145,7 @@ var _ = Describe("Create", func() {
 		)
 
 		JustBeforeEach(func() {
-			_, createErr = g.Create("some-handle", rootfsSource, diskLimit, excludeImageFromQuota)
+			_, createErr = g.Create("some-handle", diskLimit, excludeImageFromQuota)
 		})
 
 		Context("when image puller returns an error", func() {
