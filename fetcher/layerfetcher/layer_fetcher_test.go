@@ -210,4 +210,11 @@ var _ = Describe("LayerFetcher", func() {
 			})
 		})
 	})
+
+	Describe("Close", func() {
+		It("closes the source", func() {
+			Expect(fetcher.Close()).To(Succeed())
+			Expect(fakeSource.CloseCallCount()).To(Equal(1))
+		})
+	})
 })

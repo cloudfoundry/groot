@@ -33,6 +33,7 @@ type VolumeMeta struct {
 type Fetcher interface {
 	ImageInfo(logger lager.Logger) (ImageInfo, error)
 	StreamBlob(logger lager.Logger, layerInfo LayerInfo) (io.ReadCloser, int64, error)
+	Close() error
 }
 
 type VolumeDriver interface {

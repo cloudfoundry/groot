@@ -60,6 +60,7 @@ func Run(driver Driver, argv []string, driverFlags []cli.Flag) {
 	// level until the CLI framework has parsed the flags.
 	var g *Groot
 	var err error
+	var fetcher imagepuller.Fetcher
 
 	app := cli.NewApp()
 	app.Usage = "A garden image plugin"
@@ -84,10 +85,11 @@ func Run(driver Driver, argv []string, driverFlags []cli.Flag) {
 				},
 			},
 			Action: func(ctx *cli.Context) error {
-				g.ImagePuller, err = createImagePuller(ctx.Args()[0], driver)
-				if err != nil {
+				if fetcher, err = createFetcher(ctx.Args()[0]); err != nil {
 					return err
 				}
+				defer fetcher.Close()
+				g.ImagePuller = imagepuller.NewImagePuller(fetcher, driver)
 
 				handle := ctx.Args()[1]
 				var runtimeSpec runspec.Spec
@@ -102,10 +104,11 @@ func Run(driver Driver, argv []string, driverFlags []cli.Flag) {
 		{
 			Name: "pull",
 			Action: func(ctx *cli.Context) error {
-				g.ImagePuller, err = createImagePuller(ctx.Args()[0], driver)
-				if err != nil {
+				if fetcher, err = createFetcher(ctx.Args()[0]); err != nil {
 					return err
 				}
+				defer fetcher.Close()
+				g.ImagePuller = imagepuller.NewImagePuller(fetcher, driver)
 				return g.Pull()
 			},
 		},
@@ -154,12 +157,16 @@ func Run(driver Driver, argv []string, driverFlags []cli.Flag) {
 	}
 }
 
-func createFetcher(url *url.URL) imagepuller.Fetcher {
-	if url.Scheme == "oci" || url.Scheme == "docker" {
-		layerSource := source.NewLayerSource(types.SystemContext{}, false, url)
-		return layerfetcher.NewLayerFetcher(&layerSource)
+func createFetcher(urlAsString string) (imagepuller.Fetcher, error) {
+	imageURL, err := url.Parse(urlAsString)
+	if err != nil {
+		return nil, err
 	}
-	return filefetcher.NewFileFetcher(url)
+	if imageURL.Scheme == "oci" || imageURL.Scheme == "docker" {
+		layerSource := source.NewLayerSource(types.SystemContext{}, false, imageURL)
+		return layerfetcher.NewLayerFetcher(&layerSource), nil
+	}
+	return filefetcher.NewFileFetcher(imageURL), nil
 }
 
 func newLogger(logLevelStr string) (lager.Logger, error) {
@@ -179,16 +186,6 @@ func newLogger(logLevelStr string) (lager.Logger, error) {
 	logger.RegisterSink(lager.NewWriterSink(os.Stderr, logLevel))
 
 	return logger, nil
-}
-
-func createImagePuller(imageURL string, driver Driver) (*imagepuller.ImagePuller, error) {
-	rootfsURL, err := url.Parse(imageURL)
-	if err != nil {
-		return nil, err
-	}
-
-	fetcher := createFetcher(rootfsURL)
-	return imagepuller.NewImagePuller(fetcher, driver), nil
 }
 
 // SilentError silences errors. urfave/cli already prints certain errors, we

@@ -69,6 +69,10 @@ func (l *FileFetcher) ImageInfo(logger lager.Logger) (imagepuller.ImageInfo, err
 	}, nil
 }
 
+func (l *FileFetcher) Close() error {
+	return nil
+}
+
 func (l *FileFetcher) generateChainID(timestamp int64) string {
 	imagePathSha := sha256.Sum256([]byte(fmt.Sprintf("%s-%d", l.imagePath, timestamp)))
 	return hex.EncodeToString(imagePathSha[:])

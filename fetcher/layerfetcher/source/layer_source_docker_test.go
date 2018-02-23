@@ -578,6 +578,12 @@ var _ = Describe("Layer source: Docker", func() {
 			})
 		})
 	})
+
+	Describe("Close", func() {
+		It("can close prior any interactions", func() {
+			Expect(layerSource.Close()).To(Succeed())
+		})
+	})
 })
 
 func expectTarArchiveToContainHello(tar io.Reader) {
