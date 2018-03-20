@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -e
+
+lpass_note() {
+  lpass show --"${2:-notes}" "Shared-Garden/$1"
+}
+
+docker_registry_username=$(lpass_note cf-garden-docker username)
+docker_registry_password=$(lpass_note cf-garden-docker password)
+
+
+build_yml=$1
+shift
+
+if [ -z "$GARDEN_REMOTE_ATC_URL" ]; then
+  fly -t lite login -c http://192.168.100.4:8080
+  REGISTRY_USERNAME="$docker_registry_username" REGISTRY_PASSWORD="$docker_registry_password" fly -t lite e -x -p -i groot=. -c "$build_yml" "$@"
+else
+  REGISTRY_USERNAME="$docker_registry_username" REGISTRY_PASSWORD="$docker_registry_password" fly --target "$GARDEN_REMOTE_ATC_URL" e -p -i groot="$GOPATH"/src/github.com/cloudfoundry/groot -c "$build_yml" "$@"
+fi
