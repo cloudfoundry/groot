@@ -9,12 +9,10 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("groot", func() {
 	var (
-		session        *gexec.Session
 		footCmd        *exec.Cmd
 		driverStoreDir string
 	)
@@ -26,7 +24,9 @@ var _ = Describe("groot", func() {
 		})
 
 		JustBeforeEach(func() {
-			session = gexecStart(footCmd).Wait()
+			var out []byte
+			out, footCmdError = footCmd.Output()
+			footCmdOutput = gbytes.BufferWithBytes(out)
 		})
 
 		AfterEach(func() {
@@ -34,7 +34,7 @@ var _ = Describe("groot", func() {
 		})
 
 		It("calls driver.Delete() with the expected args", func() {
-			Expect(session).To(gexec.Exit(0))
+			Expect(footCmdError).NotTo(HaveOccurred())
 
 			var args foot.DeleteCalls
 			unmarshalFile(filepath.Join(driverStoreDir, foot.DeleteArgsFileName), &args)
@@ -47,8 +47,7 @@ var _ = Describe("groot", func() {
 			})
 
 			It("fails", func() {
-				Expect(session).NotTo(gexec.Exit(0))
-				Expect(session.Out).To(gbytes.Say("delete-err"))
+				expectErrorOutput("delete-err")
 			})
 		})
 	})

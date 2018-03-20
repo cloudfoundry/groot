@@ -11,13 +11,11 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("pull", func() {
 	var (
 		rootfsURI      string
-		session        *gexec.Session
 		footCmd        *exec.Cmd
 		driverStoreDir string
 		configFilePath string
@@ -34,7 +32,9 @@ var _ = Describe("pull", func() {
 	})
 
 	JustBeforeEach(func() {
-		session = gexecStart(footCmd).Wait()
+		var out []byte
+		out, footCmdError = footCmd.Output()
+		footCmdOutput = gbytes.BufferWithBytes(out)
 	})
 
 	AfterEach(func() {
@@ -43,7 +43,7 @@ var _ = Describe("pull", func() {
 
 	Describe("Local images", func() {
 		It("does not return an error", func() {
-			Expect(session).To(gexec.Exit(0))
+			Expect(footCmdError).NotTo(HaveOccurred())
 		})
 
 		It("calls driver.Unpack() with the expected args", func() {
@@ -60,7 +60,7 @@ var _ = Describe("pull", func() {
 				firstInvocationLayerID := unpackArgs[0].ID
 
 				footCmd = newFootCommand(configFilePath, driverStoreDir, "pull", rootfsURI)
-				Expect(gexecStart(footCmd).Wait()).To(gexec.Exit(0))
+				Expect(footCmd.Run()).To(Succeed())
 
 				unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &unpackArgs)
 				secondInvocationLayerID := unpackArgs[0].ID
@@ -121,7 +121,7 @@ var _ = Describe("pull", func() {
 					Expect(os.Chtimes(rootfsURI, now.Add(time.Hour), now.Add(time.Hour))).To(Succeed())
 
 					footCmd = newFootCommand(configFilePath, driverStoreDir, "pull", rootfsURI)
-					Expect(gexecStart(footCmd).Wait()).To(gexec.Exit(0))
+					Expect(footCmd.Run()).To(Succeed())
 
 					unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &unpackArgs)
 					secondInvocationLayerID := unpackArgs[1].ID
@@ -158,8 +158,7 @@ var _ = Describe("pull", func() {
 			})
 
 			It("prints the error", func() {
-				Expect(session).NotTo(gexec.Exit(0))
-				Expect(session.Out).To(gbytes.Say("unpack-err"))
+				expectErrorOutput("unpack-err")
 			})
 		})
 
@@ -169,8 +168,7 @@ var _ = Describe("pull", func() {
 			})
 
 			It("prints an error", func() {
-				Expect(session).NotTo(gexec.Exit(0))
-				Expect(session.Out).To(gbytes.Say(notFoundRuntimeError[runtime.GOOS]))
+				expectErrorOutput(notFoundRuntimeError[runtime.GOOS])
 			})
 		})
 
@@ -180,8 +178,7 @@ var _ = Describe("pull", func() {
 			})
 
 			It("prints an error", func() {
-				Expect(session).NotTo(gexec.Exit(0))
-				Expect(session.Out).To(gbytes.Say("yaml"))
+				expectErrorOutput("yaml")
 			})
 		})
 
@@ -191,8 +188,7 @@ var _ = Describe("pull", func() {
 			})
 
 			It("prints an error", func() {
-				Expect(session).NotTo(gexec.Exit(0))
-				Expect(session.Out).To(gbytes.Say("lol"))
+				expectErrorOutput("lol")
 			})
 		})
 
@@ -202,8 +198,7 @@ var _ = Describe("pull", func() {
 			})
 
 			It("prints an error", func() {
-				Expect(session).NotTo(gexec.Exit(0))
-				Expect(session.Out).To(gbytes.Say(notFoundRuntimeError[runtime.GOOS]))
+				expectErrorOutput(notFoundRuntimeError[runtime.GOOS])
 			})
 		})
 	})

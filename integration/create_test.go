@@ -12,14 +12,12 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("create", func() {
 	var (
 		rootfsURI      string
 		imageSize      int64
-		session        *gexec.Session
 		footCmd        *exec.Cmd
 		driverStoreDir string
 		configFilePath string
@@ -40,7 +38,9 @@ var _ = Describe("create", func() {
 	})
 
 	JustBeforeEach(func() {
-		session = gexecStart(footCmd).Wait()
+		var out []byte
+		out, footCmdError = footCmd.Output()
+		footCmdOutput = gbytes.BufferWithBytes(out)
 	})
 
 	AfterEach(func() {
@@ -49,7 +49,7 @@ var _ = Describe("create", func() {
 
 	Describe("Local images", func() {
 		It("does not return an error", func() {
-			Expect(session).To(gexec.Exit(0))
+			Expect(footCmdError).NotTo(HaveOccurred())
 		})
 
 		It("calls driver.Unpack() with the expected args", func() {
@@ -72,7 +72,7 @@ var _ = Describe("create", func() {
 				firstInvocationLayerID := unpackArgs[0].ID
 
 				footCmd = newFootCommand(configFilePath, driverStoreDir, "create", rootfsURI, "some-handle")
-				Expect(gexecStart(footCmd).Wait()).To(gexec.Exit(0))
+				Expect(footCmd.Run()).To(Succeed())
 
 				unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &unpackArgs)
 				secondInvocationLayerID := unpackArgs[1].ID
@@ -90,7 +90,7 @@ var _ = Describe("create", func() {
 					Expect(os.Chtimes(rootfsURI, now.Add(time.Hour), now.Add(time.Hour))).To(Succeed())
 
 					footCmd = newFootCommand(configFilePath, driverStoreDir, "create", rootfsURI, "some-handle")
-					Expect(gexecStart(footCmd).Wait()).To(gexec.Exit(0))
+					Expect(footCmd.Run()).To(Succeed())
 
 					unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &unpackArgs)
 					secondInvocationLayerID := unpackArgs[1].ID
@@ -223,7 +223,7 @@ var _ = Describe("create", func() {
 			})
 
 			It("prints an error", func() {
-				Expect(session.Out).To(gbytes.Say("invalid disk limit: -500"))
+				expectErrorOutput("invalid disk limit: -500")
 			})
 		})
 
@@ -233,7 +233,7 @@ var _ = Describe("create", func() {
 			})
 
 			It("prints an error", func() {
-				Expect(session.Out).To(gbytes.Say("pulling image: layers exceed disk quota 8/5 bytes"))
+				expectErrorOutput("pulling image: layers exceed disk quota 8/5 bytes")
 			})
 		})
 
@@ -243,7 +243,7 @@ var _ = Describe("create", func() {
 			})
 
 			It("prints an error", func() {
-				Expect(session.Out).To(gbytes.Say("disk limit 8 must be larger than image size 8"))
+				expectErrorOutput("disk limit 8 must be larger than image size 8")
 			})
 		})
 
@@ -253,7 +253,7 @@ var _ = Describe("create", func() {
 			})
 
 			It("prints the error", func() {
-				Expect(session.Out).To(gbytes.Say("unpack-err"))
+				expectErrorOutput("unpack-err")
 			})
 		})
 
@@ -263,7 +263,7 @@ var _ = Describe("create", func() {
 			})
 
 			It("prints an error", func() {
-				Expect(session.Out).To(gbytes.Say(notFoundRuntimeError[runtime.GOOS]))
+				expectErrorOutput(notFoundRuntimeError[runtime.GOOS])
 			})
 		})
 
@@ -273,7 +273,7 @@ var _ = Describe("create", func() {
 			})
 
 			It("prints an error", func() {
-				Expect(session.Out).To(gbytes.Say("yaml"))
+				expectErrorOutput("yaml")
 			})
 		})
 
@@ -283,7 +283,7 @@ var _ = Describe("create", func() {
 			})
 
 			It("prints an error", func() {
-				Expect(session.Out).To(gbytes.Say("lol"))
+				expectErrorOutput("lol")
 			})
 		})
 
@@ -293,7 +293,7 @@ var _ = Describe("create", func() {
 			})
 
 			It("prints the error", func() {
-				Expect(session.Out).To(gbytes.Say("bundle-err"))
+				expectErrorOutput("bundle-err")
 			})
 		})
 
@@ -303,7 +303,7 @@ var _ = Describe("create", func() {
 			})
 
 			It("prints the error", func() {
-				Expect(session.Out).To(gbytes.Say("write-metadata-err"))
+				expectErrorOutput("write-metadata-err")
 			})
 		})
 
@@ -313,7 +313,7 @@ var _ = Describe("create", func() {
 			})
 
 			It("prints an error", func() {
-				Expect(session.Out).To(gbytes.Say(notFoundRuntimeError[runtime.GOOS]))
+				expectErrorOutput(notFoundRuntimeError[runtime.GOOS])
 			})
 		})
 	})

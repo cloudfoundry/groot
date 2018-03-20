@@ -11,13 +11,11 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("stats", func() {
 	var (
 		footCmd        *exec.Cmd
-		session        *gexec.Session
 		driverStoreDir string
 	)
 
@@ -27,7 +25,9 @@ var _ = Describe("stats", func() {
 	})
 
 	JustBeforeEach(func() {
-		session = gexecStart(footCmd).Wait()
+		var out []byte
+		out, footCmdError = footCmd.Output()
+		footCmdOutput = gbytes.BufferWithBytes(out)
 	})
 
 	AfterEach(func() {
@@ -36,7 +36,7 @@ var _ = Describe("stats", func() {
 
 	Describe("success", func() {
 		It("calls driver.Stats() with expected args", func() {
-			Expect(session).To(gexec.Exit(0))
+			Expect(footCmdError).NotTo(HaveOccurred())
 
 			var statsArgs foot.StatsCalls
 			unmarshalFile(filepath.Join(driverStoreDir, foot.StatsArgsFileName), &statsArgs)
@@ -44,10 +44,10 @@ var _ = Describe("stats", func() {
 		})
 
 		It("returns the stats json on stdout", func() {
-			Expect(session).To(gexec.Exit(0))
+			Expect(footCmdError).NotTo(HaveOccurred())
 
 			var stats groot.VolumeStats
-			Expect(json.Unmarshal(session.Out.Contents(), &stats)).To(Succeed())
+			Expect(json.Unmarshal(footCmdOutput.Contents(), &stats)).To(Succeed())
 			Expect(stats).To(Equal(foot.ReturnedVolumeStats))
 		})
 	})
@@ -59,8 +59,7 @@ var _ = Describe("stats", func() {
 			})
 
 			It("prints the error", func() {
-				Expect(session).NotTo(gexec.Exit(0))
-				Expect(session).To(gbytes.Say("stats-err"))
+				expectErrorOutput("stats-err")
 			})
 		})
 	})

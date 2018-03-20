@@ -7,6 +7,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 
 	"testing"
@@ -18,6 +19,9 @@ var (
 		"linux":   "no such file or directory",
 		"windows": "The system cannot find the file specified.",
 	}
+
+	footCmdOutput *gbytes.Buffer
+	footCmdError  error
 )
 
 var _ = SynchronizedBeforeSuite(func() []byte {
@@ -64,8 +68,7 @@ func newFootCommand(configFilePath, driverStore string, args ...string) *exec.Cm
 	return footCmd
 }
 
-func gexecStart(cmd *exec.Cmd) *gexec.Session {
-	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
-	Expect(err).NotTo(HaveOccurred())
-	return session
+func expectErrorOutput(expectedOutput string) {
+	Expect(footCmdError).To(HaveOccurred())
+	Expect(footCmdOutput).To(gbytes.Say(expectedOutput))
 }
