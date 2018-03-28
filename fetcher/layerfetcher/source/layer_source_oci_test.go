@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"runtime"
+	"strings"
 
 	"code.cloudfoundry.org/groot/fetcher/layerfetcher/source"
 	"code.cloudfoundry.org/groot/imagepuller"
@@ -113,6 +115,22 @@ var _ = Describe("Layer source: OCI", func() {
 			It("retuns an error", func() {
 				_, err := layerSource.Manifest(logger)
 				Expect(err).To(MatchError(ContainSubstring("creating image")))
+			})
+		})
+
+		Describe("when provided an image URI in unix path format", func() {
+			BeforeEach(func() {
+				if runtime.GOOS != "windows" {
+					Skip("not applicable on *nix")
+				}
+
+				workDir = pathToUnixURI(workDir)
+				imageURL = urlParse(fmt.Sprintf("oci:///%s/../../../integration/oci-test-images/opq-whiteouts-busybox:latest", workDir))
+			})
+
+			It("fetches the manifest without error", func() {
+				_, err := layerSource.Manifest(logger)
+				Expect(err).NotTo(HaveOccurred())
 			})
 		})
 	})
@@ -227,5 +245,28 @@ var _ = Describe("Layer source: OCI", func() {
 				Expect(err).To(MatchError(ContainSubstring("layer size is less than the value in the manifest")))
 			})
 		})
+
+		Describe("when provided an image URI in unix path format", func() {
+			BeforeEach(func() {
+				if runtime.GOOS != "windows" {
+					Skip("not applicable on *nix")
+				}
+
+				workDir = pathToUnixURI(workDir)
+				imageURL = urlParse(fmt.Sprintf("oci:///%s/../../../integration/oci-test-images/opq-whiteouts-busybox:latest", workDir))
+			})
+
+			It("fetches a blob without error", func() {
+				_, _, err := layerSource.Blob(logger, layerInfo)
+				Expect(err).NotTo(HaveOccurred())
+			})
+		})
 	})
 })
+
+func pathToUnixURI(path string) string {
+	path = strings.Replace(path, "C:", "", 1)
+	path = strings.Replace(path, `\`, `/`, -1)
+	path = strings.TrimPrefix(path, "/")
+	return path
+}
