@@ -27,11 +27,15 @@ var _ = Describe("Layer source: OCI", func() {
 		workDir       string
 		systemContext types.SystemContext
 
-		skipOCILayerValidation bool
+		skipOCILayerValidation   bool
+		skipImageQuotaValidation bool
+		imageQuota               int64
 	)
 
 	BeforeEach(func() {
 		skipOCILayerValidation = false
+		skipImageQuotaValidation = true
+		imageQuota = 0
 
 		configBlob = "sha256:10c8f0eb9d1af08fe6e3b8dbd29e5aa2b6ecfa491ecd04ed90de19a4ac22de7b"
 		layerInfos = []imagepuller.LayerInfo{
@@ -57,7 +61,7 @@ var _ = Describe("Layer source: OCI", func() {
 	})
 
 	JustBeforeEach(func() {
-		layerSource = source.NewLayerSource(systemContext, skipOCILayerValidation, imageURL)
+		layerSource = source.NewLayerSource(systemContext, skipOCILayerValidation, skipImageQuotaValidation, imageQuota, imageURL)
 	})
 
 	Describe("Manifest", func() {
@@ -231,7 +235,7 @@ var _ = Describe("Layer source: OCI", func() {
 
 			It("returns an error", func() {
 				_, _, err := layerSource.Blob(logger, layerInfo)
-				Expect(err).To(MatchError(ContainSubstring("layer size is greater than the value in the manifest")))
+				Expect(err).To(MatchError(ContainSubstring("layer size is different from the value in the manifest")))
 			})
 		})
 
@@ -242,7 +246,7 @@ var _ = Describe("Layer source: OCI", func() {
 
 			It("returns an error", func() {
 				_, _, err := layerSource.Blob(logger, layerInfo)
-				Expect(err).To(MatchError(ContainSubstring("layer size is less than the value in the manifest")))
+				Expect(err).To(MatchError(ContainSubstring("layer size is different from the value in the manifest")))
 			})
 		})
 
@@ -259,6 +263,35 @@ var _ = Describe("Layer source: OCI", func() {
 			It("fetches a blob without error", func() {
 				_, _, err := layerSource.Blob(logger, layerInfo)
 				Expect(err).NotTo(HaveOccurred())
+			})
+		})
+
+		Context("when image quota validation is not skipped", func() {
+			BeforeEach(func() {
+				skipImageQuotaValidation = false
+			})
+
+			Context("when the uncompressed layer size is bigger that the quota", func() {
+				BeforeEach(func() {
+					imageQuota = 1
+				})
+
+				It("returns quota exceeded error", func() {
+					_, _, err := layerSource.Blob(logger, layerInfos[0])
+					Expect(err).To(MatchError(ContainSubstring("uncompressed layer size exceeds quota")))
+				})
+			})
+
+			Context("when the first layer exhausts the quota", func() {
+				BeforeEach(func() {
+					uncompressedLayerSize := int64(1293824)
+					imageQuota = uncompressedLayerSize
+				})
+
+				It("fails when downloading subsequent layers", func() {
+					_, _, err := layerSource.Blob(logger, layerInfos[1])
+					Expect(err).To(MatchError(ContainSubstring("uncompressed layer size exceeds quota")))
+				})
 			})
 		})
 	})

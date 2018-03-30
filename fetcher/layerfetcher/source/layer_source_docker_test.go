@@ -32,7 +32,9 @@ var _ = Describe("Layer source: Docker", func() {
 
 		fakeRegistry *testhelpers.FakeRegistry
 
-		skipOCILayerValidation bool
+		skipOCILayerValidation   bool
+		skipImageQuotaValidation bool
+		imageQuota               int64
 	)
 
 	BeforeEach(func() {
@@ -44,6 +46,8 @@ var _ = Describe("Layer source: Docker", func() {
 		}
 
 		skipOCILayerValidation = false
+		skipImageQuotaValidation = true
+		imageQuota = 0
 
 		configBlob = "sha256:217f3b4afdf698d639f854d9c6d640903a011413bc7e7bffeabe63c7ca7e4a7d"
 		layerInfos = []imagepuller.LayerInfo{
@@ -68,7 +72,7 @@ var _ = Describe("Layer source: Docker", func() {
 	})
 
 	JustBeforeEach(func() {
-		layerSource = source.NewLayerSource(systemContext, skipOCILayerValidation, imageURL)
+		layerSource = source.NewLayerSource(systemContext, skipOCILayerValidation, skipImageQuotaValidation, imageQuota, imageURL)
 	})
 
 	Describe("Manifest", func() {
@@ -383,6 +387,7 @@ var _ = Describe("Layer source: Docker", func() {
 				imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:v0.1.1", fakeRegistry.Addr()))
 				systemContext.DockerInsecureSkipTLSVerify = true
 				layerInfos[0].MediaType = "gzip"
+				layerInfos[0].Size = 8
 			})
 
 			AfterEach(func() {
@@ -468,6 +473,7 @@ var _ = Describe("Layer source: Docker", func() {
 				fakeRegistry.Start()
 				imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:v0.1.1", fakeRegistry.Addr()))
 				systemContext.DockerInsecureSkipTLSVerify = true
+				layerInfos[0].Size = 32
 			})
 
 			AfterEach(func() {
@@ -575,6 +581,23 @@ var _ = Describe("Layer source: Docker", func() {
 				Expect(fakeRegistry.RequestedBlobs()).To(Equal([]string{layerInfos[0].BlobID}))
 				Expect(logger).To(gbytes.Say("test-layer-source.streaming-blob.attempt-get-blob-2"))
 				Expect(logger).To(gbytes.Say("test-layer-source.streaming-blob.attempt-get-blob-success"))
+			})
+		})
+
+		Context("when image quota validation is not skipped", func() {
+			BeforeEach(func() {
+				skipImageQuotaValidation = false
+			})
+
+			Context("when the uncompressed layer size is bigger that the quota", func() {
+				BeforeEach(func() {
+					imageQuota = 1
+				})
+
+				It("returns quota exceeded error", func() {
+					_, _, err := layerSource.Blob(logger, layerInfos[0])
+					Expect(err).To(MatchError(ContainSubstring("uncompressed layer size exceeds quota")))
+				})
 			})
 		})
 	})

@@ -1,6 +1,7 @@
 package integration_test
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -39,7 +40,7 @@ var _ = Describe("create", func() {
 
 	JustBeforeEach(func() {
 		var out []byte
-		out, footCmdError = footCmd.Output()
+		out, footCmdError = footCmd.CombinedOutput()
 		footCmdOutput = gbytes.BufferWithBytes(out)
 	})
 
@@ -202,6 +203,15 @@ var _ = Describe("create", func() {
 	})
 
 	Describe("Remote images", func() {
+		var workDir string
+
+		BeforeEach(func() {
+			var err error
+			workDir, err = os.Getwd()
+			Expect(err).NotTo(HaveOccurred())
+			rootfsURI = fmt.Sprintf("oci:///%s/oci-test-images/opq-whiteouts-busybox:latest", workDir)
+		})
+
 		Context("when the image has multiple layers", func() {
 			It("correctly passes parent IDs to each driver.Unpack() call", func() {
 				var args foot.UnpackCalls
@@ -214,9 +224,35 @@ var _ = Describe("create", func() {
 				}
 			})
 		})
+
+		Context("when --disk-limit-size-bytes is less than compressed image size and exclude-image-from-quota is set", func() {
+			BeforeEach(func() {
+				footCmd = newFootCommand(configFilePath, driverStoreDir, "create", rootfsURI, "some-handle", "--disk-limit-size-bytes", "1", "--exclude-image-from-quota")
+			})
+
+			It("succeeds", func() {
+				fmt.Println(string(footCmdOutput.Contents()))
+				var args foot.UnpackCalls
+				unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &args)
+				Expect(len(args)).NotTo(Equal(0))
+			})
+		})
+
+		Context("when --disk-limit-size-bytes is sufficiently large", func() {
+			BeforeEach(func() {
+				footCmd = newFootCommand(configFilePath, driverStoreDir, "create", rootfsURI, "some-handle", "--disk-limit-size-bytes", "99999999")
+			})
+
+			It("succeeds", func() {
+				fmt.Println(string(footCmdOutput.Contents()))
+				var args foot.UnpackCalls
+				unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &args)
+				Expect(len(args)).NotTo(Equal(0))
+			})
+		})
 	})
 
-	Describe("failure", func() {
+	Describe("Local images failure", func() {
 		Context("--disk-limit-size-bytes is negative", func() {
 			BeforeEach(func() {
 				footCmd = newFootCommand(configFilePath, driverStoreDir, "create", rootfsURI, "some-handle", "--disk-limit-size-bytes", "-500", "--exclude-image-from-quota")
@@ -314,6 +350,27 @@ var _ = Describe("create", func() {
 
 			It("prints an error", func() {
 				expectErrorOutput(notFoundRuntimeError[runtime.GOOS])
+			})
+		})
+	})
+
+	Describe("Remote images failure", func() {
+		var workDir string
+
+		BeforeEach(func() {
+			var err error
+			workDir, err = os.Getwd()
+			Expect(err).NotTo(HaveOccurred())
+			rootfsURI = fmt.Sprintf("oci:///%s/oci-test-images/opq-whiteouts-busybox:latest", workDir)
+		})
+
+		Context("when --disk-limit-size-bytes is more than compressed and less than uncompressed image size", func() {
+			BeforeEach(func() {
+				footCmd = newFootCommand(configFilePath, driverStoreDir, "create", rootfsURI, "some-handle", "--disk-limit-size-bytes", "668276")
+			})
+
+			It("prints an error", func() {
+				expectErrorOutput("uncompressed layer size exceeds quota")
 			})
 		})
 	})
