@@ -11,7 +11,7 @@ import (
 )
 
 type FakeDriver struct {
-	UnpackStub        func(logger lager.Logger, layerID string, parentIDs []string, layerTar io.Reader) error
+	UnpackStub        func(logger lager.Logger, layerID string, parentIDs []string, layerTar io.Reader) (int64, error)
 	unpackMutex       sync.RWMutex
 	unpackArgsForCall []struct {
 		logger    lager.Logger
@@ -20,10 +20,12 @@ type FakeDriver struct {
 		layerTar  io.Reader
 	}
 	unpackReturns struct {
-		result1 error
+		result1 int64
+		result2 error
 	}
 	unpackReturnsOnCall map[int]struct {
-		result1 error
+		result1 int64
+		result2 error
 	}
 	BundleStub        func(logger lager.Logger, bundleID string, layerIDs []string, diskLimit int64) (runspec.Spec, error)
 	bundleMutex       sync.RWMutex
@@ -40,18 +42,6 @@ type FakeDriver struct {
 	bundleReturnsOnCall map[int]struct {
 		result1 runspec.Spec
 		result2 error
-	}
-	ExistsStub        func(logger lager.Logger, layerID string) bool
-	existsMutex       sync.RWMutex
-	existsArgsForCall []struct {
-		logger  lager.Logger
-		layerID string
-	}
-	existsReturns struct {
-		result1 bool
-	}
-	existsReturnsOnCall map[int]struct {
-		result1 bool
 	}
 	DeleteStub        func(logger lager.Logger, bundleID string) error
 	deleteMutex       sync.RWMutex
@@ -96,7 +86,7 @@ type FakeDriver struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeDriver) Unpack(logger lager.Logger, layerID string, parentIDs []string, layerTar io.Reader) error {
+func (fake *FakeDriver) Unpack(logger lager.Logger, layerID string, parentIDs []string, layerTar io.Reader) (int64, error) {
 	var parentIDsCopy []string
 	if parentIDs != nil {
 		parentIDsCopy = make([]string, len(parentIDs))
@@ -116,9 +106,9 @@ func (fake *FakeDriver) Unpack(logger lager.Logger, layerID string, parentIDs []
 		return fake.UnpackStub(logger, layerID, parentIDs, layerTar)
 	}
 	if specificReturn {
-		return ret.result1
+		return ret.result1, ret.result2
 	}
-	return fake.unpackReturns.result1
+	return fake.unpackReturns.result1, fake.unpackReturns.result2
 }
 
 func (fake *FakeDriver) UnpackCallCount() int {
@@ -133,23 +123,26 @@ func (fake *FakeDriver) UnpackArgsForCall(i int) (lager.Logger, string, []string
 	return fake.unpackArgsForCall[i].logger, fake.unpackArgsForCall[i].layerID, fake.unpackArgsForCall[i].parentIDs, fake.unpackArgsForCall[i].layerTar
 }
 
-func (fake *FakeDriver) UnpackReturns(result1 error) {
+func (fake *FakeDriver) UnpackReturns(result1 int64, result2 error) {
 	fake.UnpackStub = nil
 	fake.unpackReturns = struct {
-		result1 error
-	}{result1}
+		result1 int64
+		result2 error
+	}{result1, result2}
 }
 
-func (fake *FakeDriver) UnpackReturnsOnCall(i int, result1 error) {
+func (fake *FakeDriver) UnpackReturnsOnCall(i int, result1 int64, result2 error) {
 	fake.UnpackStub = nil
 	if fake.unpackReturnsOnCall == nil {
 		fake.unpackReturnsOnCall = make(map[int]struct {
-			result1 error
+			result1 int64
+			result2 error
 		})
 	}
 	fake.unpackReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
+		result1 int64
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeDriver) Bundle(logger lager.Logger, bundleID string, layerIDs []string, diskLimit int64) (runspec.Spec, error) {
@@ -209,55 +202,6 @@ func (fake *FakeDriver) BundleReturnsOnCall(i int, result1 runspec.Spec, result2
 		result1 runspec.Spec
 		result2 error
 	}{result1, result2}
-}
-
-func (fake *FakeDriver) Exists(logger lager.Logger, layerID string) bool {
-	fake.existsMutex.Lock()
-	ret, specificReturn := fake.existsReturnsOnCall[len(fake.existsArgsForCall)]
-	fake.existsArgsForCall = append(fake.existsArgsForCall, struct {
-		logger  lager.Logger
-		layerID string
-	}{logger, layerID})
-	fake.recordInvocation("Exists", []interface{}{logger, layerID})
-	fake.existsMutex.Unlock()
-	if fake.ExistsStub != nil {
-		return fake.ExistsStub(logger, layerID)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.existsReturns.result1
-}
-
-func (fake *FakeDriver) ExistsCallCount() int {
-	fake.existsMutex.RLock()
-	defer fake.existsMutex.RUnlock()
-	return len(fake.existsArgsForCall)
-}
-
-func (fake *FakeDriver) ExistsArgsForCall(i int) (lager.Logger, string) {
-	fake.existsMutex.RLock()
-	defer fake.existsMutex.RUnlock()
-	return fake.existsArgsForCall[i].logger, fake.existsArgsForCall[i].layerID
-}
-
-func (fake *FakeDriver) ExistsReturns(result1 bool) {
-	fake.ExistsStub = nil
-	fake.existsReturns = struct {
-		result1 bool
-	}{result1}
-}
-
-func (fake *FakeDriver) ExistsReturnsOnCall(i int, result1 bool) {
-	fake.ExistsStub = nil
-	if fake.existsReturnsOnCall == nil {
-		fake.existsReturnsOnCall = make(map[int]struct {
-			result1 bool
-		})
-	}
-	fake.existsReturnsOnCall[i] = struct {
-		result1 bool
-	}{result1}
 }
 
 func (fake *FakeDriver) Delete(logger lager.Logger, bundleID string) error {
@@ -418,8 +362,6 @@ func (fake *FakeDriver) Invocations() map[string][][]interface{} {
 	defer fake.unpackMutex.RUnlock()
 	fake.bundleMutex.RLock()
 	defer fake.bundleMutex.RUnlock()
-	fake.existsMutex.RLock()
-	defer fake.existsMutex.RUnlock()
 	fake.deleteMutex.RLock()
 	defer fake.deleteMutex.RUnlock()
 	fake.statsMutex.RLock()

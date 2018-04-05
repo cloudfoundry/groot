@@ -10,7 +10,7 @@ import (
 )
 
 type FakeVolumeDriver struct {
-	UnpackStub        func(logger lager.Logger, layerID string, parentIDs []string, layerTar io.Reader) error
+	UnpackStub        func(logger lager.Logger, layerID string, parentIDs []string, layerTar io.Reader) (int64, error)
 	unpackMutex       sync.RWMutex
 	unpackArgsForCall []struct {
 		logger    lager.Logger
@@ -19,28 +19,18 @@ type FakeVolumeDriver struct {
 		layerTar  io.Reader
 	}
 	unpackReturns struct {
-		result1 error
+		result1 int64
+		result2 error
 	}
 	unpackReturnsOnCall map[int]struct {
-		result1 error
-	}
-	ExistsStub        func(logger lager.Logger, layerID string) bool
-	existsMutex       sync.RWMutex
-	existsArgsForCall []struct {
-		logger  lager.Logger
-		layerID string
-	}
-	existsReturns struct {
-		result1 bool
-	}
-	existsReturnsOnCall map[int]struct {
-		result1 bool
+		result1 int64
+		result2 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeVolumeDriver) Unpack(logger lager.Logger, layerID string, parentIDs []string, layerTar io.Reader) error {
+func (fake *FakeVolumeDriver) Unpack(logger lager.Logger, layerID string, parentIDs []string, layerTar io.Reader) (int64, error) {
 	var parentIDsCopy []string
 	if parentIDs != nil {
 		parentIDsCopy = make([]string, len(parentIDs))
@@ -60,9 +50,9 @@ func (fake *FakeVolumeDriver) Unpack(logger lager.Logger, layerID string, parent
 		return fake.UnpackStub(logger, layerID, parentIDs, layerTar)
 	}
 	if specificReturn {
-		return ret.result1
+		return ret.result1, ret.result2
 	}
-	return fake.unpackReturns.result1
+	return fake.unpackReturns.result1, fake.unpackReturns.result2
 }
 
 func (fake *FakeVolumeDriver) UnpackCallCount() int {
@@ -77,72 +67,26 @@ func (fake *FakeVolumeDriver) UnpackArgsForCall(i int) (lager.Logger, string, []
 	return fake.unpackArgsForCall[i].logger, fake.unpackArgsForCall[i].layerID, fake.unpackArgsForCall[i].parentIDs, fake.unpackArgsForCall[i].layerTar
 }
 
-func (fake *FakeVolumeDriver) UnpackReturns(result1 error) {
+func (fake *FakeVolumeDriver) UnpackReturns(result1 int64, result2 error) {
 	fake.UnpackStub = nil
 	fake.unpackReturns = struct {
-		result1 error
-	}{result1}
+		result1 int64
+		result2 error
+	}{result1, result2}
 }
 
-func (fake *FakeVolumeDriver) UnpackReturnsOnCall(i int, result1 error) {
+func (fake *FakeVolumeDriver) UnpackReturnsOnCall(i int, result1 int64, result2 error) {
 	fake.UnpackStub = nil
 	if fake.unpackReturnsOnCall == nil {
 		fake.unpackReturnsOnCall = make(map[int]struct {
-			result1 error
+			result1 int64
+			result2 error
 		})
 	}
 	fake.unpackReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeVolumeDriver) Exists(logger lager.Logger, layerID string) bool {
-	fake.existsMutex.Lock()
-	ret, specificReturn := fake.existsReturnsOnCall[len(fake.existsArgsForCall)]
-	fake.existsArgsForCall = append(fake.existsArgsForCall, struct {
-		logger  lager.Logger
-		layerID string
-	}{logger, layerID})
-	fake.recordInvocation("Exists", []interface{}{logger, layerID})
-	fake.existsMutex.Unlock()
-	if fake.ExistsStub != nil {
-		return fake.ExistsStub(logger, layerID)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.existsReturns.result1
-}
-
-func (fake *FakeVolumeDriver) ExistsCallCount() int {
-	fake.existsMutex.RLock()
-	defer fake.existsMutex.RUnlock()
-	return len(fake.existsArgsForCall)
-}
-
-func (fake *FakeVolumeDriver) ExistsArgsForCall(i int) (lager.Logger, string) {
-	fake.existsMutex.RLock()
-	defer fake.existsMutex.RUnlock()
-	return fake.existsArgsForCall[i].logger, fake.existsArgsForCall[i].layerID
-}
-
-func (fake *FakeVolumeDriver) ExistsReturns(result1 bool) {
-	fake.ExistsStub = nil
-	fake.existsReturns = struct {
-		result1 bool
-	}{result1}
-}
-
-func (fake *FakeVolumeDriver) ExistsReturnsOnCall(i int, result1 bool) {
-	fake.ExistsStub = nil
-	if fake.existsReturnsOnCall == nil {
-		fake.existsReturnsOnCall = make(map[int]struct {
-			result1 bool
-		})
-	}
-	fake.existsReturnsOnCall[i] = struct {
-		result1 bool
-	}{result1}
+		result1 int64
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *FakeVolumeDriver) Invocations() map[string][][]interface{} {
@@ -150,8 +94,6 @@ func (fake *FakeVolumeDriver) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.unpackMutex.RLock()
 	defer fake.unpackMutex.RUnlock()
-	fake.existsMutex.RLock()
-	defer fake.existsMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

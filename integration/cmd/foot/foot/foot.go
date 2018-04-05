@@ -17,12 +17,12 @@ type Foot struct {
 	BaseDir string
 }
 
-func (t *Foot) Unpack(logger lager.Logger, id string, parentIDs []string, layerTar io.Reader) error {
+func (t *Foot) Unpack(logger lager.Logger, id string, parentIDs []string, layerTar io.Reader) (int64, error) {
 	logger.Info("unpack-info")
 	logger.Debug("unpack-debug")
 
 	if _, exists := os.LookupEnv("FOOT_UNPACK_ERROR"); exists {
-		return errors.New("unpack-err")
+		return 0, errors.New("unpack-err")
 	}
 
 	layerTarContents, err := ioutil.ReadAll(layerTar)
@@ -30,7 +30,7 @@ func (t *Foot) Unpack(logger lager.Logger, id string, parentIDs []string, layerT
 	saveObject([]interface{}{
 		UnpackArgs{ID: id, ParentIDs: parentIDs, LayerTarContents: layerTarContents},
 	}, t.pathTo(UnpackArgsFileName))
-	return nil
+	return int64(len(layerTarContents)), nil
 }
 
 func (t *Foot) Bundle(logger lager.Logger, id string, layerIDs []string, diskLimit int64) (specs.Spec, error) {
@@ -59,21 +59,6 @@ func (t *Foot) Delete(logger lager.Logger, id string) error {
 		DeleteArgs{BundleID: id},
 	}, t.pathTo(DeleteArgsFileName))
 	return nil
-}
-
-func (t *Foot) Exists(logger lager.Logger, layerID string) bool {
-	logger.Info("exists-info")
-	logger.Debug("exists-debug")
-
-	if _, exists := os.LookupEnv("FOOT_LAYER_EXISTS"); exists {
-		return true
-	}
-
-	saveObject([]interface{}{
-		ExistsArgs{LayerID: layerID},
-	}, t.pathTo(ExistsArgsFileName),
-	)
-	return false
 }
 
 func (t *Foot) Stats(logger lager.Logger, id string) (groot.VolumeStats, error) {

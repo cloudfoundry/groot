@@ -56,10 +56,10 @@ var _ = Describe("Create", func() {
 
 		BeforeEach(func() {
 			rootfsFileBuffer = bytes.NewBuffer([]byte{})
-			driver.UnpackStub = func(logger lager.Logger, id string, parentIDs []string, layerTar io.Reader) error {
-				_, err := io.Copy(rootfsFileBuffer, layerTar)
+			driver.UnpackStub = func(logger lager.Logger, id string, parentIDs []string, layerTar io.Reader) (int64, error) {
+				bytesWritten, err := io.Copy(rootfsFileBuffer, layerTar)
 				Expect(err).NotTo(HaveOccurred())
-				return nil
+				return bytesWritten, nil
 			}
 		})
 
@@ -125,16 +125,6 @@ var _ = Describe("Create", func() {
 					_, _, _, diskLimit := driver.BundleArgsForCall(0)
 					Expect(diskLimit).To(Equal(int64(0)))
 				})
-			})
-		})
-
-		Context("when the layer already exists", func() {
-			BeforeEach(func() {
-				driver.ExistsReturns(true)
-			})
-
-			It("doesn't call driver.Unpack", func() {
-				Expect(driver.UnpackCallCount()).To(Equal(0))
 			})
 		})
 	})

@@ -1,7 +1,9 @@
 package integration_test
 
 import (
+	"compress/gzip"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -101,41 +103,6 @@ var _ = Describe("create", func() {
 			})
 		})
 
-		Describe("layer caching", func() {
-			It("calls exists", func() {
-				var existsArgs foot.ExistsCalls
-				unmarshalFile(filepath.Join(driverStoreDir, foot.ExistsArgsFileName), &existsArgs)
-				Expect(existsArgs[0].LayerID).ToNot(BeEmpty())
-			})
-
-			It("calls driver.Unpack() with the layerID", func() {
-				var existsArgs foot.ExistsCalls
-				unmarshalFile(filepath.Join(driverStoreDir, foot.ExistsArgsFileName), &existsArgs)
-				Expect(existsArgs[0].LayerID).ToNot(BeEmpty())
-
-				Expect(filepath.Join(driverStoreDir, foot.UnpackArgsFileName)).To(BeAnExistingFile())
-
-				var unpackArgs foot.UnpackCalls
-				unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &unpackArgs)
-				Expect(len(unpackArgs)).To(Equal(len(existsArgs)))
-
-				lastCall := len(unpackArgs) - 1
-				for i := range unpackArgs {
-					Expect(unpackArgs[i].ID).To(Equal(existsArgs[lastCall-i].LayerID))
-				}
-			})
-
-			Context("when the layer is cached", func() {
-				BeforeEach(func() {
-					footCmd.Env = append(os.Environ(), "FOOT_LAYER_EXISTS=true")
-				})
-
-				It("doesn't call driver.Unpack()", func() {
-					Expect(filepath.Join(driverStoreDir, foot.UnpackArgsFileName)).ToNot(BeAnExistingFile())
-				})
-			})
-		})
-
 		It("calls driver.Bundle() with expected args", func() {
 			var unpackArgs foot.UnpackCalls
 			unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &unpackArgs)
@@ -231,7 +198,6 @@ var _ = Describe("create", func() {
 			})
 
 			It("succeeds", func() {
-				fmt.Println(string(footCmdOutput.Contents()))
 				var args foot.UnpackCalls
 				unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &args)
 				Expect(len(args)).NotTo(Equal(0))
@@ -244,10 +210,22 @@ var _ = Describe("create", func() {
 			})
 
 			It("succeeds", func() {
-				fmt.Println(string(footCmdOutput.Contents()))
-				var args foot.UnpackCalls
-				unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &args)
-				Expect(len(args)).NotTo(Equal(0))
+				var unpackArgs foot.UnpackCalls
+				unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &unpackArgs)
+				Expect(len(unpackArgs)).NotTo(Equal(0))
+			})
+
+			It("calculates the disk limit based on uncompressed layer sizes", func() {
+				var bundleArgs foot.BundleCalls
+				unmarshalFile(filepath.Join(driverStoreDir, foot.BundleArgsFileName), &bundleArgs)
+
+				blobsPath := fmt.Sprintf("%s/oci-test-images/opq-whiteouts-busybox/blobs/sha256", workDir)
+
+				// yuck, this is white-box because we know this is how foot calculates size
+				firstBlobSize := getUncompressedBlobSize(filepath.Join(blobsPath, "56bec22e355981d8ba0878c6c2f23b21f422f30ab0aba188b54f1ffeff59c190"))
+				secondBlobSize := getUncompressedBlobSize(filepath.Join(blobsPath, "ed2d7b0f6d7786230b71fd60de08a553680a9a96ab216183bcc49c71f06033ab"))
+
+				Expect(bundleArgs[0].DiskLimit).To(BeEquivalentTo(99999999 - (firstBlobSize + secondBlobSize)))
 			})
 		})
 	})
@@ -375,3 +353,18 @@ var _ = Describe("create", func() {
 		})
 	})
 })
+
+func getUncompressedBlobSize(path string) int64 {
+	f, err := os.Open(path)
+	Expect(err).NotTo(HaveOccurred())
+	defer f.Close()
+
+	gzipReader, err := gzip.NewReader(f)
+	Expect(err).NotTo(HaveOccurred())
+	defer gzipReader.Close()
+
+	bytes, err := ioutil.ReadAll(gzipReader)
+	Expect(err).NotTo(HaveOccurred())
+
+	return int64(len(bytes))
+}

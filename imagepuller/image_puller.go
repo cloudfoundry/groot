@@ -37,8 +37,7 @@ type Fetcher interface {
 }
 
 type VolumeDriver interface {
-	Unpack(logger lager.Logger, layerID string, parentIDs []string, layerTar io.Reader) error
-	Exists(logger lager.Logger, layerID string) bool
+	Unpack(logger lager.Logger, layerID string, parentIDs []string, layerTar io.Reader) (int64, error)
 }
 
 type Image struct {
@@ -75,30 +74,69 @@ func (p *ImagePuller) Pull(logger lager.Logger, spec ImageSpec) (Image, error) {
 	}
 	logger.Debug("fetched-layer-infos", lager.Data{"infos": imageInfo.LayerInfos})
 
-	if err = p.quotaExceeded(logger, imageInfo.LayerInfos, spec); err != nil {
+	if err = quotaExceeded(logger, imageInfo.LayerInfos, spec); err != nil {
 		return Image{}, err
 	}
 
-	err = p.buildLayer(logger, len(imageInfo.LayerInfos)-1, imageInfo.LayerInfos, spec)
+	imageSize, err := p.buildLayers(logger, imageInfo.LayerInfos, spec)
 	if err != nil {
 		return Image{}, err
 	}
-	chainIDs := p.chainIDs(imageInfo.LayerInfos)
+	chainIDs := chainIDs(imageInfo.LayerInfos)
 
 	image := Image{
 		Image:         imageInfo.Config,
 		ChainIDs:      chainIDs,
-		BaseImageSize: p.layersSize(imageInfo.LayerInfos),
+		BaseImageSize: imageSize,
 	}
 	return image, nil
 }
 
-func (p *ImagePuller) quotaExceeded(logger lager.Logger, layerInfos []LayerInfo, spec ImageSpec) error {
+func (p *ImagePuller) buildLayers(logger lager.Logger, layerInfos []LayerInfo, spec ImageSpec) (int64, error) {
+	totalBytes := int64(0)
+
+	for i, layerInfo := range layerInfos {
+		builtBytes, err := p.buildLayer(logger, layerInfo, chainIDs(layerInfos[0:i]), spec)
+		if err != nil {
+			return 0, err
+		}
+		totalBytes += builtBytes
+	}
+
+	return totalBytes, nil
+}
+
+func (p *ImagePuller) buildLayer(logger lager.Logger, layerInfo LayerInfo, parentChainIDs []string, spec ImageSpec) (int64, error) {
+	logger = logger.Session("build-layer", lager.Data{
+		"blobID":        layerInfo.BlobID,
+		"chainID":       layerInfo.ChainID,
+		"parentChainID": layerInfo.ParentChainID,
+	})
+
+	stream, blobSize, err := p.fetcher.StreamBlob(logger, layerInfo)
+	if err != nil {
+		return 0, errors.Wrapf(err, "opening stream for blob `%s`", layerInfo.BlobID)
+	}
+	defer stream.Close()
+	logger.Debug("got-stream-for-blob", lager.Data{"size": blobSize})
+
+	return p.volumeDriver.Unpack(logger, layerInfo.ChainID, parentChainIDs, stream)
+}
+
+func chainIDs(layerInfos []LayerInfo) []string {
+	chainIDs := []string{}
+	for _, layerInfo := range layerInfos {
+		chainIDs = append(chainIDs, layerInfo.ChainID)
+	}
+	return chainIDs
+}
+
+func quotaExceeded(logger lager.Logger, layerInfos []LayerInfo, spec ImageSpec) error {
 	if spec.ExcludeImageFromQuota || spec.DiskLimit == 0 {
 		return nil
 	}
 
-	totalSize := p.layersSize(layerInfos)
+	totalSize := layersSize(layerInfos)
 	if totalSize > spec.DiskLimit {
 		err := errors.Errorf("layers exceed disk quota %d/%d bytes", totalSize, spec.DiskLimit)
 		logger.Error("blob-manifest-size-check-failed", err, lager.Data{
@@ -112,62 +150,7 @@ func (p *ImagePuller) quotaExceeded(logger lager.Logger, layerInfos []LayerInfo,
 	return nil
 }
 
-func (p *ImagePuller) chainIDs(layerInfos []LayerInfo) []string {
-	chainIDs := []string{}
-	for _, layerInfo := range layerInfos {
-		chainIDs = append(chainIDs, layerInfo.ChainID)
-	}
-	return chainIDs
-}
-
-func (p *ImagePuller) buildLayer(logger lager.Logger, index int, layerInfos []LayerInfo, spec ImageSpec) error {
-	if index < 0 {
-		return nil
-	}
-
-	layerInfo := layerInfos[index]
-	logger = logger.Session("build-layer", lager.Data{
-		"blobID":        layerInfo.BlobID,
-		"chainID":       layerInfo.ChainID,
-		"parentChainID": layerInfo.ParentChainID,
-	})
-	if p.volumeDriver.Exists(logger, layerInfo.ChainID) {
-		return nil
-	}
-
-	if err := p.buildLayer(logger, index-1, layerInfos, spec); err != nil {
-		return err
-	}
-
-	return p.downloadLayer(logger, layerInfo, getParentChainIDs(layerInfos[0:index]), spec)
-}
-
-func getParentChainIDs(layerInfos []LayerInfo) []string {
-	parentChainIDs := []string{}
-	for _, info := range layerInfos {
-		parentChainIDs = append(parentChainIDs, info.ChainID)
-	}
-
-	return parentChainIDs
-}
-
-func (p *ImagePuller) downloadLayer(logger lager.Logger, layerInfo LayerInfo, parentChainIDs []string, spec ImageSpec) error {
-	logger = logger.Session("downloading-layer", lager.Data{"LayerInfo": layerInfo})
-	logger.Debug("starting")
-	defer logger.Debug("ending")
-
-	stream, size, err := p.fetcher.StreamBlob(logger, layerInfo)
-	if err != nil {
-		return errors.Wrapf(err, "streaming blob `%s`", layerInfo.BlobID)
-	}
-	defer stream.Close()
-
-	logger.Debug("got-stream-for-blob", lager.Data{"size": size})
-
-	return p.volumeDriver.Unpack(logger, layerInfo.ChainID, parentChainIDs, stream)
-}
-
-func (p *ImagePuller) layersSize(layerInfos []LayerInfo) int64 {
+func layersSize(layerInfos []LayerInfo) int64 {
 	var totalSize int64
 	for _, layerInfo := range layerInfos {
 		totalSize += layerInfo.Size

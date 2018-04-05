@@ -33,9 +33,8 @@ type VolumeMetadata struct {
 // Driver should implement the filesystem interaction
 //go:generate counterfeiter . Driver
 type Driver interface {
-	Unpack(logger lager.Logger, layerID string, parentIDs []string, layerTar io.Reader) error
+	Unpack(logger lager.Logger, layerID string, parentIDs []string, layerTar io.Reader) (int64, error)
 	Bundle(logger lager.Logger, bundleID string, layerIDs []string, diskLimit int64) (runspec.Spec, error)
-	Exists(logger lager.Logger, layerID string) bool
 	Delete(logger lager.Logger, bundleID string) error
 	Stats(logger lager.Logger, bundleID string) (VolumeStats, error)
 	WriteMetadata(logger lager.Logger, bundleID string, volumeData VolumeMetadata) error

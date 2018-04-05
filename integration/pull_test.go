@@ -69,41 +69,6 @@ var _ = Describe("pull", func() {
 			})
 		})
 
-		Describe("layer caching", func() {
-			It("calls exists", func() {
-				var existsArgs foot.ExistsCalls
-				unmarshalFile(filepath.Join(driverStoreDir, foot.ExistsArgsFileName), &existsArgs)
-				Expect(existsArgs[0].LayerID).ToNot(BeEmpty())
-			})
-
-			It("calls driver.Unpack() with the layerID", func() {
-				var existsArgs foot.ExistsCalls
-				unmarshalFile(filepath.Join(driverStoreDir, foot.ExistsArgsFileName), &existsArgs)
-				Expect(existsArgs[0].LayerID).ToNot(BeEmpty())
-
-				Expect(filepath.Join(driverStoreDir, foot.UnpackArgsFileName)).To(BeAnExistingFile())
-
-				var unpackArgs foot.UnpackCalls
-				unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &unpackArgs)
-				Expect(len(unpackArgs)).To(Equal(len(existsArgs)))
-
-				lastCall := len(unpackArgs) - 1
-				for i := range unpackArgs {
-					Expect(unpackArgs[i].ID).To(Equal(existsArgs[lastCall-i].LayerID))
-				}
-			})
-
-			Context("when the layer is cached", func() {
-				BeforeEach(func() {
-					footCmd.Env = append(os.Environ(), "FOOT_LAYER_EXISTS=true")
-				})
-
-				It("doesn't call driver.Unpack()", func() {
-					Expect(filepath.Join(driverStoreDir, foot.UnpackArgsFileName)).ToNot(BeAnExistingFile())
-				})
-			})
-		})
-
 		It("calls driver.Unpack() with the correct stream", func() {
 			var args foot.UnpackCalls
 			unmarshalFile(filepath.Join(driverStoreDir, foot.UnpackArgsFileName), &args)

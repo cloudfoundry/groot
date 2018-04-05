@@ -55,6 +55,12 @@ var _ = Describe("Image Puller", func() {
 		tmpVolumesDir = tempDir("", "volumes")
 
 		fakeVolumeDriver = new(imagepullerfakes.FakeVolumeDriver)
+		count := 0
+		fakeVolumeDriver.UnpackStub = func(_ lager.Logger, layerID string, parentIDs []string, layerTar io.Reader) (int64, error) {
+			size := layerInfos[count].Size
+			count++
+			return size, nil
+		}
 		imagePuller = imagepuller.NewImagePuller(fakeFetcher, fakeVolumeDriver)
 		logger = lagertest.NewTestLogger("image-puller")
 	})
@@ -185,42 +191,9 @@ var _ = Describe("Image Puller", func() {
 		})
 	})
 
-	Context("when all volumes exist", func() {
+	Context("when unpacking a volume fails", func() {
 		BeforeEach(func() {
-			fakeVolumeDriver.ExistsReturns(true)
-		})
-
-		It("does not try to unpack any layer", func() {
-			_, err := imagePuller.Pull(logger, imagepuller.ImageSpec{})
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(fakeVolumeDriver.UnpackCallCount()).To(Equal(0))
-		})
-	})
-
-	Context("when one volume exists", func() {
-		BeforeEach(func() {
-			fakeVolumeDriver.ExistsStub = func(_ lager.Logger, id string) bool {
-				if id == "chain-222" {
-					return true
-				}
-				return false
-			}
-		})
-
-		It("only creates the children of the existing volume", func() {
-			_, err := imagePuller.Pull(logger, imagepuller.ImageSpec{})
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(fakeVolumeDriver.UnpackCallCount()).To(Equal(1))
-			_, volID, _, _ := fakeVolumeDriver.UnpackArgsForCall(0)
-			Expect(volID).To(Equal("chain-333"))
-		})
-	})
-
-	Context("when creating a volume fails", func() {
-		BeforeEach(func() {
-			fakeVolumeDriver.UnpackReturns(errors.New("failed to create volume"))
+			fakeVolumeDriver.UnpackReturns(0, errors.New("failed to create volume"))
 		})
 
 		It("returns an error", func() {
@@ -240,16 +213,16 @@ var _ = Describe("Image Puller", func() {
 		})
 	})
 
-	Context("when unpacking a blob fails", func() {
+	Context("when unpacking a child blob fails", func() {
 		BeforeEach(func() {
 			count := 0
-			fakeVolumeDriver.UnpackStub = func(_ lager.Logger, id string, parentIDs []string, stream io.Reader) error {
+			fakeVolumeDriver.UnpackStub = func(_ lager.Logger, id string, parentIDs []string, stream io.Reader) (int64, error) {
 				count++
 				if count == 3 {
-					return errors.New("failed to unpack the blob")
+					return 0, errors.New("failed to unpack the blob")
 				}
 
-				return nil
+				return 0, nil
 			}
 		})
 

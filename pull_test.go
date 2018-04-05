@@ -47,10 +47,10 @@ var _ = Describe("Pull", func() {
 
 		BeforeEach(func() {
 			rootfsFileBuffer = bytes.NewBuffer([]byte{})
-			driver.UnpackStub = func(logger lager.Logger, id string, parentIDs []string, layerTar io.Reader) error {
-				_, err := io.Copy(rootfsFileBuffer, layerTar)
+			driver.UnpackStub = func(logger lager.Logger, id string, parentIDs []string, layerTar io.Reader) (int64, error) {
+				bytesWritten, err := io.Copy(rootfsFileBuffer, layerTar)
 				Expect(err).NotTo(HaveOccurred())
-				return nil
+				return bytesWritten, nil
 			}
 		})
 
@@ -62,16 +62,6 @@ var _ = Describe("Pull", func() {
 			Expect(imagePuller.PullCallCount()).To(Equal(1))
 			_, spec := imagePuller.PullArgsForCall(0)
 			Expect(spec).To(Equal(imagepuller.ImageSpec{}))
-		})
-
-		Context("when the layer already exists", func() {
-			BeforeEach(func() {
-				driver.ExistsReturns(true)
-			})
-
-			It("doesn't call driver.Unpack", func() {
-				Expect(driver.UnpackCallCount()).To(Equal(0))
-			})
 		})
 	})
 
