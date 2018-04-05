@@ -75,7 +75,7 @@ func (t *Foot) Stats(logger lager.Logger, id string) (groot.VolumeStats, error) 
 	return ReturnedVolumeStats, nil
 }
 
-func (t *Foot) WriteMetadata(logger lager.Logger, id string, volumeData groot.VolumeMetadata) error {
+func (t *Foot) WriteMetadata(logger lager.Logger, id string, volumeData groot.ImageMetadata) error {
 	logger.Info("write-metadata-info")
 	logger.Debug("write-metadata-debug")
 
@@ -138,7 +138,7 @@ type StatsArgs struct {
 type WriteMetadataCalls []WriteMetadataArgs
 type WriteMetadataArgs struct {
 	ID         string
-	VolumeData groot.VolumeMetadata
+	VolumeData groot.ImageMetadata
 }
 
 func (t *Foot) pathTo(filename string) string {

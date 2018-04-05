@@ -33,8 +33,8 @@ var _ = Describe("Create", func() {
 		imagePuller = new(grootfakes.FakeImagePuller)
 
 		imagePuller.PullReturns(imagepuller.Image{
-			ChainIDs:      []string{"checksum"},
-			BaseImageSize: 1000,
+			ChainIDs: []string{"checksum"},
+			Size:     1000,
 		}, nil)
 
 		logger = lagertest.NewTestLogger("groot")
@@ -93,7 +93,7 @@ var _ = Describe("Create", func() {
 			Expect(driver.WriteMetadataCallCount()).To(Equal(1))
 			_, id, metadata := driver.WriteMetadataArgsForCall(0)
 			Expect(id).To(Equal("some-handle"))
-			Expect(metadata).To(Equal(groot.VolumeMetadata{BaseImageSize: 1000}))
+			Expect(metadata).To(Equal(groot.ImageMetadata{Size: 1000}))
 		})
 
 		Context("exclude image from quota is true", func() {

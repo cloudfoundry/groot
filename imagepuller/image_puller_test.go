@@ -83,7 +83,7 @@ var _ = Describe("Image Puller", func() {
 
 	It("returns the total size of the base image", func() {
 		image, _ := imagePuller.Pull(logger, imagepuller.ImageSpec{})
-		Expect(image.BaseImageSize).To(Equal(int64(666)))
+		Expect(image.Size).To(Equal(int64(666)))
 	})
 
 	It("passes the correct parentIDs to Unpack", func() {

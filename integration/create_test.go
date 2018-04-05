@@ -123,7 +123,7 @@ var _ = Describe("create", func() {
 			unmarshalFile(filepath.Join(driverStoreDir, foot.WriteMetadataArgsFileName), &writeMetadataArgs)
 
 			Expect(writeMetadataArgs[0].ID).To(Equal("some-handle"))
-			Expect(writeMetadataArgs[0].VolumeData).To(Equal(groot.VolumeMetadata{BaseImageSize: imageSize}))
+			Expect(writeMetadataArgs[0].VolumeData).To(Equal(groot.ImageMetadata{Size: imageSize}))
 		})
 
 		Context("--disk-limit-size-bytes is given", func() {
