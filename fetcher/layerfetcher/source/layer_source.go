@@ -37,7 +37,7 @@ type LayerSource struct {
 	imageURL               *url.URL
 	// imageSource needs to be a singleton that is initialised on demand in createImageSource. DO NOT use the field directly, use getImageSource instead
 	imageSource              types.ImageSource
-	imageQuota               int64
+	remainingImageQuota      int64
 	skipImageQuotaValidation bool
 }
 
@@ -46,7 +46,7 @@ func NewLayerSource(systemContext types.SystemContext, skipOCILayerValidation, s
 		systemContext:            systemContext,
 		skipOCILayerValidation:   skipOCILayerValidation,
 		imageURL:                 imageURL,
-		imageQuota:               diskLimit,
+		remainingImageQuota:      diskLimit,
 		skipImageQuotaValidation: skipImageQuotaValidation,
 	}
 }
@@ -87,7 +87,7 @@ func (s *LayerSource) Blob(logger lager.Logger, layerInfo imagepuller.LayerInfo)
 	logger = logger.Session("streaming-blob", lager.Data{
 		"imageURL":                 s.imageURL,
 		"digest":                   layerInfo.BlobID,
-		"imageQuota":               s.imageQuota,
+		"remainingImageQuota":      s.remainingImageQuota,
 		"skipImageQuotaValidation": s.skipImageQuotaValidation,
 	})
 	logger.Info("starting")
@@ -132,7 +132,7 @@ func (s *LayerSource) Blob(logger lager.Logger, layerInfo imagepuller.LayerInfo)
 	}
 
 	if s.shouldEnforceImageQuotaValidation() {
-		digestReader = layerfetcher.NewQuotaedReader(digestReader, s.imageQuota, "uncompressed layer size exceeds quota")
+		digestReader = layerfetcher.NewQuotaedReader(digestReader, s.remainingImageQuota, "uncompressed layer size exceeds quota")
 	}
 
 	defer func() {
@@ -162,7 +162,7 @@ func (s *LayerSource) Blob(logger lager.Logger, layerInfo imagepuller.LayerInfo)
 		return "", 0, errors.Wrap(err, "diffID digest mismatch")
 	}
 
-	s.imageQuota -= uncompressedSize
+	s.remainingImageQuota -= uncompressedSize
 
 	return blobTempFile.Name(), size, nil
 }
