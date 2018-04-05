@@ -73,7 +73,7 @@ var _ = Describe("Image Puller", func() {
 		image, err := imagePuller.Pull(logger, imagepuller.ImageSpec{})
 		Expect(err).NotTo(HaveOccurred())
 
-		Expect(image.Image).To(Equal(expectedImgDesc))
+		Expect(image.Config).To(Equal(expectedImgDesc))
 	})
 
 	It("returns the chain ids in the order specified by the image", func() {
