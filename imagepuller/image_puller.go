@@ -3,6 +3,7 @@ package imagepuller // import "code.cloudfoundry.org/groot/imagepuller"
 import (
 	"io"
 
+	"code.cloudfoundry.org/groot/imagepuller/ondemand"
 	"code.cloudfoundry.org/lager"
 	imgspec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
@@ -113,14 +114,20 @@ func (p *ImagePuller) buildLayer(logger lager.Logger, layerInfo LayerInfo, paren
 		"parentChainID": layerInfo.ParentChainID,
 	})
 
-	stream, blobSize, err := p.fetcher.StreamBlob(logger, layerInfo)
-	if err != nil {
-		return 0, errors.Wrapf(err, "opening stream for blob `%s`", layerInfo.BlobID)
-	}
-	defer stream.Close()
-	logger.Debug("got-stream-for-blob", lager.Data{"size": blobSize})
+	onDemandReader := &ondemand.Reader{
+		Create: func() (io.ReadCloser, error) {
+			stream, blobSize, err := p.fetcher.StreamBlob(logger, layerInfo)
+			if err != nil {
+				return nil, errors.Wrapf(err, "opening stream for blob `%s`", layerInfo.BlobID)
+			}
 
-	return p.volumeDriver.Unpack(logger, layerInfo.ChainID, parentChainIDs, stream)
+			logger.Debug("got-stream-for-blob", lager.Data{"size": blobSize})
+			return stream, nil
+		},
+	}
+	defer onDemandReader.Close()
+
+	return p.volumeDriver.Unpack(logger, layerInfo.ChainID, parentChainIDs, onDemandReader)
 }
 
 func chainIDs(layerInfos []LayerInfo) []string {

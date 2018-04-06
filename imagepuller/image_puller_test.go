@@ -205,6 +205,10 @@ var _ = Describe("Image Puller", func() {
 	Context("when streaming a blob fails", func() {
 		BeforeEach(func() {
 			fakeFetcher.StreamBlobReturns(nil, 0, errors.New("failed to stream blob"))
+			fakeVolumeDriver.UnpackStub = func(_ lager.Logger, id string, parentIDs []string, stream io.Reader) (int64, error) {
+				bytesRead, err := stream.Read([]byte{})
+				return int64(bytesRead), err
+			}
 		})
 
 		It("returns an error", func() {
