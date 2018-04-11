@@ -2,6 +2,7 @@ package source_test
 
 import (
 	"compress/gzip"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -278,7 +279,7 @@ var _ = Describe("Layer source: Docker", func() {
 		JustBeforeEach(func() {
 			manifest, err := layerSource.Manifest(logger)
 			Expect(err).NotTo(HaveOccurred())
-			config, configErr = manifest.OCIConfig()
+			config, configErr = manifest.OCIConfig(context.TODO())
 		})
 
 		It("does not return an error", func() {
