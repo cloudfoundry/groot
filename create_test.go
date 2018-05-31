@@ -11,6 +11,7 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	imgspec "github.com/opencontainers/image-spec/specs-go/v1"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	errors "github.com/pkg/errors"
 )
@@ -94,6 +95,28 @@ var _ = Describe("Create", func() {
 			_, id, metadata := driver.WriteMetadataArgsForCall(0)
 			Expect(id).To(Equal("some-handle"))
 			Expect(metadata).To(Equal(groot.ImageMetadata{Size: 1000}))
+		})
+
+		Context("image has env vars", func() {
+			BeforeEach(func() {
+				imagePuller.PullReturns(imagepuller.Image{
+					ChainIDs: []string{"checksum"},
+					Size:     1000,
+					Config: imgspec.Image{
+						Config: imgspec.ImageConfig{
+							Env: []string{"foo=bar"},
+						},
+					},
+				}, nil)
+
+				driverRuntimeSpec.Process = &specs.Process{
+					Env: []string{"foo=bar"},
+				}
+			})
+
+			It("includes env information in the returned spec", func() {
+				Expect(returnedRuntimeSpec).To(Equal(driverRuntimeSpec))
+			})
 		})
 
 		Context("exclude image from quota is true", func() {
