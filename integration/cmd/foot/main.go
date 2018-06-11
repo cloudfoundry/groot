@@ -17,5 +17,5 @@ func main() {
 			Usage:       "driver store path",
 			Destination: &driver.BaseDir,
 		}}
-	groot.Run(driver, os.Args, driverFlags)
+	groot.Run(driver, os.Args, driverFlags, "0.0.1")
 }
