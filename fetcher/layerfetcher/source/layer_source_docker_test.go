@@ -117,6 +117,7 @@ var _ = Describe("Layer source: Docker", func() {
 
 		Context("when the image is private", func() {
 			BeforeEach(func() {
+				maybeSkipPrivateDockerRegistryTest()
 				imageURL = urlParse("docker:///cfgarden/private")
 				systemContext.DockerAuthConfig = privateDockerAuthConfig()
 
@@ -244,6 +245,7 @@ var _ = Describe("Layer source: Docker", func() {
 
 		Context("when using private images", func() {
 			BeforeEach(func() {
+				maybeSkipPrivateDockerRegistryTest()
 				imageURL = urlParse("docker:///cfgarden/private")
 				systemContext.DockerAuthConfig = privateDockerAuthConfig()
 
@@ -291,6 +293,7 @@ var _ = Describe("Layer source: Docker", func() {
 
 		Context("when the image is private", func() {
 			BeforeEach(func() {
+				maybeSkipPrivateDockerRegistryTest()
 				systemContext.DockerAuthConfig = privateDockerAuthConfig()
 				imageURL = urlParse("docker:///cfgarden/private")
 			})
@@ -400,6 +403,7 @@ var _ = Describe("Layer source: Docker", func() {
 
 		Context("when the image is private", func() {
 			BeforeEach(func() {
+				maybeSkipPrivateDockerRegistryTest()
 				imageURL = urlParse("docker:///cfgarden/private")
 				systemContext.DockerAuthConfig = privateDockerAuthConfig()
 

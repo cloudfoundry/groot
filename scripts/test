@@ -3,13 +3,28 @@ set -euo pipefail
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-if [ -z ${REGISTRY_USERNAME+x} ]
-then
-  export REGISTRY_USERNAME
-  REGISTRY_USERNAME="$(lpass show 'Shared-Garden/cf-garden-docker' --username)"
-  export REGISTRY_PASSWORD
-  REGISTRY_PASSWORD="$(lpass show 'Shared-Garden/cf-garden-docker' --password)"
-fi
+function print_usage() {
+  echo "Usage: scripts/test [--skip-private-docker-registry-tests] [-- [ginkgo_args]]"
+}
+
+while [ ! $# -eq 0 ]; do
+  case "$1" in
+    --skip-private-docker-registry-tests)
+        export SKIP_PRIVATE_DOCKER_REGISTRY_TESTS=true
+      ;;
+
+    --)
+      shift
+      break
+      ;;
+
+    --help | -h)
+      print_usage
+      exit 0
+      ;;
+  esac
+  shift
+done
 
 (
   cd "$( dirname "$DIR" )"

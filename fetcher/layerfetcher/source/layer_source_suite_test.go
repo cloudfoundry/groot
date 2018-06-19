@@ -59,3 +59,9 @@ func ensureEnv(name string) string {
 	Expect(exists).To(BeTrue(), fmt.Sprintf("expected env var %s to be set", name))
 	return value
 }
+
+func maybeSkipPrivateDockerRegistryTest() {
+	if _, exists := os.LookupEnv("SKIP_PRIVATE_DOCKER_REGISTRY_TESTS"); exists {
+		Skip("skipping private docker registry test")
+	}
+}
