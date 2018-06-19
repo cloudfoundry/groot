@@ -39,12 +39,7 @@ var _ = Describe("Layer source: Docker", func() {
 	)
 
 	BeforeEach(func() {
-		systemContext = types.SystemContext{
-			DockerAuthConfig: &types.DockerAuthConfig{
-				Username: RegistryUsername,
-				Password: RegistryPassword,
-			},
-		}
+		systemContext = types.SystemContext{DockerAuthConfig: new(types.DockerAuthConfig)}
 
 		skipOCILayerValidation = false
 		skipImageQuotaValidation = true
@@ -123,6 +118,7 @@ var _ = Describe("Layer source: Docker", func() {
 		Context("when the image is private", func() {
 			BeforeEach(func() {
 				imageURL = urlParse("docker:///cfgarden/private")
+				systemContext.DockerAuthConfig = privateDockerAuthConfig()
 
 				configBlob = "sha256:c2bf00eb303023869c676f91af930a12925c24d677999917e8d52c73fa10b73a"
 				layerInfos[0].BlobID = "sha256:dabca1fccc91489bf9914945b95582f16d6090f423174641710083d6651db4a4"
@@ -249,6 +245,7 @@ var _ = Describe("Layer source: Docker", func() {
 		Context("when using private images", func() {
 			BeforeEach(func() {
 				imageURL = urlParse("docker:///cfgarden/private")
+				systemContext.DockerAuthConfig = privateDockerAuthConfig()
 
 				layerInfos[0].BlobID = "sha256:dabca1fccc91489bf9914945b95582f16d6090f423174641710083d6651db4a4"
 				layerInfos[0].DiffID = "780016ca8250bcbed0cbcf7b023c75550583de26629e135a1e31c0bf91fba296"
@@ -294,6 +291,7 @@ var _ = Describe("Layer source: Docker", func() {
 
 		Context("when the image is private", func() {
 			BeforeEach(func() {
+				systemContext.DockerAuthConfig = privateDockerAuthConfig()
 				imageURL = urlParse("docker:///cfgarden/private")
 			})
 
@@ -403,6 +401,7 @@ var _ = Describe("Layer source: Docker", func() {
 		Context("when the image is private", func() {
 			BeforeEach(func() {
 				imageURL = urlParse("docker:///cfgarden/private")
+				systemContext.DockerAuthConfig = privateDockerAuthConfig()
 
 				layerInfos = []imagepuller.LayerInfo{
 					{

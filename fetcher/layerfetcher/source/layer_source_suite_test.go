@@ -2,28 +2,19 @@ package source_test
 
 import (
 	"archive/tar"
+	"fmt"
 	"io"
 	"net/url"
 	"os"
 	"testing"
 
+	"github.com/containers/image/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-var (
-	RegistryUsername string
-	RegistryPassword string
-)
-
 func TestSource(t *testing.T) {
 	RegisterFailHandler(Fail)
-
-	BeforeEach(func() {
-		RegistryUsername = os.Getenv("REGISTRY_USERNAME")
-		RegistryPassword = os.Getenv("REGISTRY_PASSWORD")
-	})
-
 	RunSpecs(t, "Layer Fetcher Source Suite")
 }
 
@@ -46,12 +37,25 @@ func tarEntries(tarFile io.Reader) []string {
 
 func urlParse(s string) *url.URL {
 	u, err := url.Parse(s)
-	Expect(err).NotTo(HaveOccurred())
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 	return u
 }
 
 func open(path string) *os.File {
 	f, err := os.Open(path)
-	Expect(err).NotTo(HaveOccurred())
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
 	return f
+}
+
+func privateDockerAuthConfig() *types.DockerAuthConfig {
+	return &types.DockerAuthConfig{
+		Username: ensureEnv("REGISTRY_USERNAME"),
+		Password: ensureEnv("REGISTRY_PASSWORD"),
+	}
+}
+
+func ensureEnv(name string) string {
+	value, exists := os.LookupEnv(name)
+	Expect(exists).To(BeTrue(), fmt.Sprintf("expected env var %s to be set", name))
+	return value
 }
