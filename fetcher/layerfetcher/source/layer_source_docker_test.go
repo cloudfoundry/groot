@@ -20,6 +20,8 @@ import (
 	"github.com/opencontainers/image-spec/specs-go/v1"
 )
 
+const emptyImageConfigBlob = "sha256:cdc9e972ad70c8dea1d185462fbc6120399e0839d02e33738b6c1c71b75b1c35"
+
 var _ = Describe("Layer source: Docker", func() {
 	var (
 		layerSource source.LayerSource
@@ -27,7 +29,6 @@ var _ = Describe("Layer source: Docker", func() {
 		logger   *lagertest.TestLogger
 		imageURL *url.URL
 
-		configBlob    string
 		layerInfos    []imagepuller.LayerInfo
 		systemContext types.SystemContext
 
@@ -45,26 +46,25 @@ var _ = Describe("Layer source: Docker", func() {
 		skipImageQuotaValidation = true
 		imageQuota = 0
 
-		configBlob = "sha256:217f3b4afdf698d639f854d9c6d640903a011413bc7e7bffeabe63c7ca7e4a7d"
 		layerInfos = []imagepuller.LayerInfo{
 			{
-				BlobID:    "sha256:47e3dd80d678c83c50cb133f4cf20e94d088f890679716c8b763418f55827a58",
-				DiffID:    "afe200c63655576eaa5cabe036a2c09920d6aee67653ae75a9d35e0ec27205a5",
+				BlobID:    "sha256:742f13f887a914778308c47981b4601c01d0d98dad3e507c3c884c8cb78fe812",
+				DiffID:    "707ae567c303ed86ab2069eefd9853e657efc2070d62a8ce0b5db014627a8f72",
 				MediaType: "application/vnd.oci.image.layer.v1.tar+gzip",
 				Size:      90,
 			},
 			{
-				BlobID:    "sha256:7f2760e7451ce455121932b178501d60e651f000c3ab3bc12ae5d1f57614cc76",
-				DiffID:    "d7c6a5f0d9a15779521094fa5eaf026b719984fb4bfe8e0012bd1da1b62615b0",
+				BlobID:    "sha256:85f1e021a8be19d023c275a080cdc3aaa72f4f405f0083eebe0c44479738ed37",
+				DiffID:    "34cb21e628859162deee5826b04a29e7740e9f136dc63c2ec3ef4280e5b1ae83",
 				MediaType: "application/vnd.oci.image.layer.v1.tar+gzip",
-				Size:      88,
+				Size:      89,
 			},
 		}
 
 		fakeRegistry = testhelpers.NewFakeRegistry(urlParse("https://registry-1.docker.io"))
 
 		logger = lagertest.NewTestLogger("test-layer-source")
-		imageURL = urlParse("docker:///cfgarden/empty:v0.1.1")
+		imageURL = urlParse("docker:///cfgarden/empty:groot")
 	})
 
 	JustBeforeEach(func() {
@@ -86,7 +86,7 @@ var _ = Describe("Layer source: Docker", func() {
 			Expect(manifestErr).NotTo(HaveOccurred())
 
 			By("fetching the manifest")
-			Expect(manifest.ConfigInfo().Digest.String()).To(Equal(configBlob))
+			Expect(manifest.ConfigInfo().Digest.String()).To(Equal(emptyImageConfigBlob))
 			Expect(manifest.LayerInfos()).To(HaveLen(2))
 			Expect(manifest.LayerInfos()[0].Digest.String()).To(Equal(layerInfos[0].BlobID))
 			Expect(manifest.LayerInfos()[0].Size).To(Equal(layerInfos[0].Size))
@@ -120,11 +120,6 @@ var _ = Describe("Layer source: Docker", func() {
 				maybeSkipPrivateDockerRegistryTest()
 				imageURL = privateDockerImageURL()
 				systemContext.DockerAuthConfig = privateDockerAuthConfig()
-
-				configBlob = "sha256:c2bf00eb303023869c676f91af930a12925c24d677999917e8d52c73fa10b73a"
-				layerInfos[0].BlobID = "sha256:dabca1fccc91489bf9914945b95582f16d6090f423174641710083d6651db4a4"
-				layerInfos[0].DiffID = "afe200c63655576eaa5cabe036a2c09920d6aee67653ae75a9d35e0ec27205a5"
-				layerInfos[1].BlobID = "sha256:48ce60c2de08a424e10810c41ec2f00916cfd0f12333e96eb4363eb63723be87"
 			})
 
 			It("fetches the manifest", func() {
@@ -132,7 +127,7 @@ var _ = Describe("Layer source: Docker", func() {
 				Expect(manifestErr).NotTo(HaveOccurred())
 
 				By("fetching the manifest")
-				Expect(manifest.ConfigInfo().Digest.String()).To(Equal(configBlob))
+				Expect(manifest.ConfigInfo().Digest.String()).To(Equal(emptyImageConfigBlob))
 				Expect(manifest.LayerInfos()).To(HaveLen(2))
 				Expect(manifest.LayerInfos()[0].Digest.String()).To(Equal(layerInfos[0].BlobID))
 				Expect(manifest.LayerInfos()[0].Size).To(Equal(layerInfos[0].Size))
@@ -160,7 +155,7 @@ var _ = Describe("Layer source: Docker", func() {
 
 		Context("when the image url is invalid", func() {
 			BeforeEach(func() {
-				imageURL = urlParse("docker:cfgarden/empty:v0.1.0")
+				imageURL = urlParse("docker:cfgarden/empty:groot")
 			})
 
 			It("returns an error", func() {
@@ -191,7 +186,7 @@ var _ = Describe("Layer source: Docker", func() {
 				fakeRegistry.Start()
 				fakeRegistry.FailNextRequests(2)
 				systemContext.DockerInsecureSkipTLSVerify = true
-				imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:v0.1.1", fakeRegistry.Addr()))
+				imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:groot", fakeRegistry.Addr()))
 			})
 
 			AfterEach(func() {
@@ -213,7 +208,7 @@ var _ = Describe("Layer source: Docker", func() {
 		Context("when a private registry is used", func() {
 			BeforeEach(func() {
 				fakeRegistry.Start()
-				imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:v0.1.1", fakeRegistry.Addr()))
+				imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:groot", fakeRegistry.Addr()))
 			})
 
 			AfterEach(func() {
@@ -248,11 +243,6 @@ var _ = Describe("Layer source: Docker", func() {
 				maybeSkipPrivateDockerRegistryTest()
 				imageURL = privateDockerImageURL()
 				systemContext.DockerAuthConfig = privateDockerAuthConfig()
-
-				layerInfos[0].BlobID = "sha256:dabca1fccc91489bf9914945b95582f16d6090f423174641710083d6651db4a4"
-				layerInfos[0].DiffID = "780016ca8250bcbed0cbcf7b023c75550583de26629e135a1e31c0bf91fba296"
-				layerInfos[1].BlobID = "sha256:48ce60c2de08a424e10810c41ec2f00916cfd0f12333e96eb4363eb63723be87"
-				layerInfos[1].DiffID = "56702ece901015f4f42dc82d1386c5ffc13625c008890d52548ff30dd142838b"
 			})
 
 			It("fetches the manifest", func() {
@@ -304,8 +294,8 @@ var _ = Describe("Layer source: Docker", func() {
 
 			It("fetches the config", func() {
 				Expect(config.RootFS.DiffIDs).To(HaveLen(2))
-				Expect(config.RootFS.DiffIDs[0].Hex()).To(Equal("780016ca8250bcbed0cbcf7b023c75550583de26629e135a1e31c0bf91fba296"))
-				Expect(config.RootFS.DiffIDs[1].Hex()).To(Equal("56702ece901015f4f42dc82d1386c5ffc13625c008890d52548ff30dd142838b"))
+				Expect(config.RootFS.DiffIDs[0].Hex()).To(Equal(layerInfos[0].DiffID))
+				Expect(config.RootFS.DiffIDs[1].Hex()).To(Equal(layerInfos[1].DiffID))
 			})
 		})
 
@@ -329,7 +319,7 @@ var _ = Describe("Layer source: Docker", func() {
 		Context("when a private registry is used and it is whitelisted", func() {
 			BeforeEach(func() {
 				fakeRegistry.Start()
-				imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:v0.1.1", fakeRegistry.Addr()))
+				imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:groot", fakeRegistry.Addr()))
 				systemContext.DockerInsecureSkipTLSVerify = true
 			})
 
@@ -386,7 +376,7 @@ var _ = Describe("Layer source: Docker", func() {
 
 				fakeRegistry.Start()
 
-				imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:v0.1.1", fakeRegistry.Addr()))
+				imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:groot", fakeRegistry.Addr()))
 				systemContext.DockerInsecureSkipTLSVerify = true
 				layerInfos[0].MediaType = "gzip"
 				layerInfos[0].Size = 8
@@ -406,15 +396,6 @@ var _ = Describe("Layer source: Docker", func() {
 				maybeSkipPrivateDockerRegistryTest()
 				imageURL = privateDockerImageURL()
 				systemContext.DockerAuthConfig = privateDockerAuthConfig()
-
-				layerInfos = []imagepuller.LayerInfo{
-					{
-						BlobID:    "sha256:dabca1fccc91489bf9914945b95582f16d6090f423174641710083d6651db4a4",
-						DiffID:    "780016ca8250bcbed0cbcf7b023c75550583de26629e135a1e31c0bf91fba296",
-						MediaType: "application/vnd.oci.image.layer.v1.tar+gzip",
-						Size:      90,
-					},
-				}
 			})
 
 			It("does not return an error", func() {
@@ -449,7 +430,7 @@ var _ = Describe("Layer source: Docker", func() {
 
 		Context("when the image url is invalid", func() {
 			BeforeEach(func() {
-				imageURL = urlParse("docker:cfgarden/empty:v0.1.0")
+				imageURL = urlParse("docker:cfgarden/empty:groot")
 			})
 
 			It("returns an error", func() {
@@ -475,7 +456,7 @@ var _ = Describe("Layer source: Docker", func() {
 					gzipWriter.Close()
 				})
 				fakeRegistry.Start()
-				imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:v0.1.1", fakeRegistry.Addr()))
+				imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:groot", fakeRegistry.Addr()))
 				systemContext.DockerInsecureSkipTLSVerify = true
 				layerInfos[0].Size = 32
 			})
@@ -513,7 +494,7 @@ var _ = Describe("Layer source: Docker", func() {
 			BeforeEach(func() {
 				fakeRegistry.Start()
 				systemContext.DockerInsecureSkipTLSVerify = true
-				imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:v0.1.1", fakeRegistry.Addr()))
+				imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:groot", fakeRegistry.Addr()))
 				fakeRegistry.FailNextRequests(2)
 			})
 
@@ -531,7 +512,7 @@ var _ = Describe("Layer source: Docker", func() {
 		Context("when a private registry is used", func() {
 			BeforeEach(func() {
 				fakeRegistry.Start()
-				imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:v0.1.1", fakeRegistry.Addr()))
+				imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:groot", fakeRegistry.Addr()))
 			})
 
 			AfterEach(func() {
@@ -565,7 +546,7 @@ var _ = Describe("Layer source: Docker", func() {
 			BeforeEach(func() {
 				fakeRegistry.Start()
 				systemContext.DockerInsecureSkipTLSVerify = true
-				imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:v0.1.1", fakeRegistry.Addr()))
+				imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:groot", fakeRegistry.Addr()))
 				fakeRegistry.WhenGettingBlob(layerInfos[0].BlobID, 1, func(resp http.ResponseWriter, req *http.Request) {
 					resp.WriteHeader(http.StatusTeapot)
 					_, _ = io.WriteString(resp, "null")
