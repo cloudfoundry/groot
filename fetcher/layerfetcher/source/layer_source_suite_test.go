@@ -47,6 +47,10 @@ func open(path string) *os.File {
 	return f
 }
 
+func privateDockerImageURL() *url.URL {
+	return urlParse(ensureEnv("PRIVATE_DOCKER_IMAGE_URL"))
+}
+
 func privateDockerAuthConfig() *types.DockerAuthConfig {
 	return &types.DockerAuthConfig{
 		Username: ensureEnv("REGISTRY_USERNAME"),

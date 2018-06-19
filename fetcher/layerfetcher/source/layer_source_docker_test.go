@@ -118,7 +118,7 @@ var _ = Describe("Layer source: Docker", func() {
 		Context("when the image is private", func() {
 			BeforeEach(func() {
 				maybeSkipPrivateDockerRegistryTest()
-				imageURL = urlParse("docker:///cfgarden/private")
+				imageURL = privateDockerImageURL()
 				systemContext.DockerAuthConfig = privateDockerAuthConfig()
 
 				configBlob = "sha256:c2bf00eb303023869c676f91af930a12925c24d677999917e8d52c73fa10b73a"
@@ -246,7 +246,7 @@ var _ = Describe("Layer source: Docker", func() {
 		Context("when using private images", func() {
 			BeforeEach(func() {
 				maybeSkipPrivateDockerRegistryTest()
-				imageURL = urlParse("docker:///cfgarden/private")
+				imageURL = privateDockerImageURL()
 				systemContext.DockerAuthConfig = privateDockerAuthConfig()
 
 				layerInfos[0].BlobID = "sha256:dabca1fccc91489bf9914945b95582f16d6090f423174641710083d6651db4a4"
@@ -295,7 +295,7 @@ var _ = Describe("Layer source: Docker", func() {
 			BeforeEach(func() {
 				maybeSkipPrivateDockerRegistryTest()
 				systemContext.DockerAuthConfig = privateDockerAuthConfig()
-				imageURL = urlParse("docker:///cfgarden/private")
+				imageURL = privateDockerImageURL()
 			})
 
 			It("does not return an error", func() {
@@ -404,7 +404,7 @@ var _ = Describe("Layer source: Docker", func() {
 		Context("when the image is private", func() {
 			BeforeEach(func() {
 				maybeSkipPrivateDockerRegistryTest()
-				imageURL = urlParse("docker:///cfgarden/private")
+				imageURL = privateDockerImageURL()
 				systemContext.DockerAuthConfig = privateDockerAuthConfig()
 
 				layerInfos = []imagepuller.LayerInfo{
