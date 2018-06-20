@@ -166,5 +166,16 @@ var _ = Describe("pull", func() {
 				expectErrorOutput(notFoundRuntimeError[runtime.GOOS])
 			})
 		})
+
+		Context("when the incorrect number of args is given", func() {
+			BeforeEach(func() {
+				footCmd = newFootCommand(configFilePath, driverStoreDir, "pull")
+			})
+
+			It("prints an error", func() {
+				Expect(footCmdError).To(HaveOccurred())
+				Expect(footCmdOutput).To(gbytes.Say("Incorrect number of args. Expect 1, got 0"))
+			})
+		})
 	})
 })

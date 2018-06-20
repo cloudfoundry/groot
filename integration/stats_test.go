@@ -62,5 +62,16 @@ var _ = Describe("stats", func() {
 				expectErrorOutput("stats-err")
 			})
 		})
+
+		Context("when the incorrect number of args is given", func() {
+			BeforeEach(func() {
+				footCmd = newFootCommand("", driverStoreDir, "stats")
+			})
+
+			It("prints an error", func() {
+				Expect(footCmdError).To(HaveOccurred())
+				Expect(footCmdOutput).To(gbytes.Say("Incorrect number of args. Expect 1, got 0"))
+			})
+		})
 	})
 })
