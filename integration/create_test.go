@@ -50,6 +50,20 @@ var _ = Describe("create", func() {
 		Expect(os.RemoveAll(driverStoreDir)).To(Succeed())
 	})
 
+	Context("when the incorrect number of args is given", func() {
+		BeforeEach(func() {
+			Expect(os.Remove(rootfsURI)).To(Succeed())
+		})
+
+		It("prints an error", func() {
+			badFootCmd := newFootCommand(configFilePath, driverStoreDir, "create", rootfsURI)
+			out, badFootCmdError := badFootCmd.CombinedOutput()
+			badFootCmdOutput := gbytes.BufferWithBytes(out)
+			Expect(badFootCmdError).To(HaveOccurred())
+			Expect(badFootCmdOutput).To(gbytes.Say("Incorrect number of args. Expect 2, got 1"))
+		})
+	})
+
 	Describe("Local images", func() {
 		It("does not return an error", func() {
 			Expect(footCmdError).NotTo(HaveOccurred())
