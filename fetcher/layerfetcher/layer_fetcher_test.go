@@ -164,8 +164,8 @@ var _ = Describe("LayerFetcher", func() {
 		})
 
 		AfterEach(func() {
-			os.Remove(tmpFile.Name())
-			Expect(tmpFile.Name()).NotTo(BeAnExistingFile())
+			err := os.Remove(tmpFile.Name())
+			Expect(tmpFile.Name()).NotTo(BeAnExistingFile(), err.Error())
 		})
 
 		It("uses the source", func() {
