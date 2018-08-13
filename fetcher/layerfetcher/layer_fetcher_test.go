@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"errors"
+	"fmt"
 	"os"
 	"time"
 
@@ -165,7 +166,7 @@ var _ = Describe("LayerFetcher", func() {
 
 		AfterEach(func() {
 			err := os.Remove(tmpFile.Name())
-			Expect(tmpFile.Name()).NotTo(BeAnExistingFile(), err.Error())
+			Expect(tmpFile.Name()).NotTo(BeAnExistingFile(), fmt.Sprintf("%v", err))
 		})
 
 		It("uses the source", func() {
