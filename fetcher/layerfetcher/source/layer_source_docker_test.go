@@ -140,7 +140,7 @@ var _ = Describe("Layer source: Docker", func() {
 					fakeRegistry.Start()
 					fakeRegistry.ForceTokenAuthError()
 					imageURL = urlParse(fmt.Sprintf("docker://%s/doesnt-matter-because-fake-registry", fakeRegistry.Addr()))
-					systemContext.DockerInsecureSkipTLSVerify = true
+					systemContext.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
 				})
 
 				AfterEach(func() {
@@ -185,7 +185,7 @@ var _ = Describe("Layer source: Docker", func() {
 			BeforeEach(func() {
 				fakeRegistry.Start()
 				fakeRegistry.FailNextRequests(2)
-				systemContext.DockerInsecureSkipTLSVerify = true
+				systemContext.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
 				imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:groot", fakeRegistry.Addr()))
 			})
 
@@ -221,7 +221,7 @@ var _ = Describe("Layer source: Docker", func() {
 
 			Context("when the private registry is whitelisted", func() {
 				BeforeEach(func() {
-					systemContext.DockerInsecureSkipTLSVerify = true
+					systemContext.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
 				})
 
 				It("fetches the manifest", func() {
@@ -320,7 +320,7 @@ var _ = Describe("Layer source: Docker", func() {
 			BeforeEach(func() {
 				fakeRegistry.Start()
 				imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:groot", fakeRegistry.Addr()))
-				systemContext.DockerInsecureSkipTLSVerify = true
+				systemContext.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
 			})
 
 			AfterEach(func() {
@@ -377,7 +377,7 @@ var _ = Describe("Layer source: Docker", func() {
 				fakeRegistry.Start()
 
 				imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:groot", fakeRegistry.Addr()))
-				systemContext.DockerInsecureSkipTLSVerify = true
+				systemContext.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
 				layerInfos[0].MediaType = "gzip"
 				layerInfos[0].Size = 8
 			})
@@ -415,7 +415,7 @@ var _ = Describe("Layer source: Docker", func() {
 					fakeRegistry.Start()
 					fakeRegistry.ForceTokenAuthError()
 					imageURL = urlParse(fmt.Sprintf("docker://%s/doesnt-matter-because-fake-registry", fakeRegistry.Addr()))
-					systemContext.DockerInsecureSkipTLSVerify = true
+					systemContext.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
 				})
 
 				AfterEach(func() {
@@ -457,7 +457,7 @@ var _ = Describe("Layer source: Docker", func() {
 				})
 				fakeRegistry.Start()
 				imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:groot", fakeRegistry.Addr()))
-				systemContext.DockerInsecureSkipTLSVerify = true
+				systemContext.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
 				layerInfos[0].Size = 32
 			})
 
@@ -493,7 +493,7 @@ var _ = Describe("Layer source: Docker", func() {
 		Context("when registry communication fails temporarily", func() {
 			BeforeEach(func() {
 				fakeRegistry.Start()
-				systemContext.DockerInsecureSkipTLSVerify = true
+				systemContext.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
 				imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:groot", fakeRegistry.Addr()))
 				fakeRegistry.FailNextRequests(2)
 			})
@@ -525,7 +525,7 @@ var _ = Describe("Layer source: Docker", func() {
 
 			Context("when the private registry is whitelisted", func() {
 				BeforeEach(func() {
-					systemContext.DockerInsecureSkipTLSVerify = true
+					systemContext.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
 				})
 
 				It("does not return an error", func() {
@@ -545,7 +545,7 @@ var _ = Describe("Layer source: Docker", func() {
 		Context("when registry communication fails temporarily", func() {
 			BeforeEach(func() {
 				fakeRegistry.Start()
-				systemContext.DockerInsecureSkipTLSVerify = true
+				systemContext.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
 				imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:groot", fakeRegistry.Addr()))
 				fakeRegistry.WhenGettingBlob(layerInfos[0].BlobID, 1, func(resp http.ResponseWriter, req *http.Request) {
 					resp.WriteHeader(http.StatusTeapot)
