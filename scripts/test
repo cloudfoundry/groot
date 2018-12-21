@@ -34,7 +34,7 @@ done
 
 (
   cd "$( dirname "$DIR" )"
-  if [ -z ${REGISTRY_USERNAME+x} ]; then
+  if [ -z ${DOCKER_REGISTRY_USERNAME+x} ]; then
     set_default_groot_env
   fi
   ginkgo -r -keepGoing -failOnPending -randomizeAllSpecs -randomizeSuites -p "$@"

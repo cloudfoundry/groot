@@ -12,8 +12,8 @@ inputs:
   path: src/code.cloudfoundry.org/groot
 
 params:
-  REGISTRY_USERNAME:
-  REGISTRY_PASSWORD:
+  DCOKER_REGISTRY_USERNAME:
+  DOCKER_REGISTRY_PASSWORD:
 
 caches:
 - path: pkg

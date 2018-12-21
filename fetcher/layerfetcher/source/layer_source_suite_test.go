@@ -53,8 +53,8 @@ func privateDockerImageURL() *url.URL {
 
 func privateDockerAuthConfig() *types.DockerAuthConfig {
 	return &types.DockerAuthConfig{
-		Username: ensureEnv("REGISTRY_USERNAME"),
-		Password: ensureEnv("REGISTRY_PASSWORD"),
+		Username: ensureEnv("DOCKER_REGISTRY_USERNAME"),
+		Password: ensureEnv("DOCKER_REGISTRY_PASSWORD"),
 	}
 }
 
