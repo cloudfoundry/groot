@@ -178,7 +178,7 @@ var _ = Describe("LayerFetcher", func() {
 			Expect(layerInfo.BlobID).To(Equal("sha256:layer-digest"))
 		})
 
-		It("returns the stream from the source", func(done Done) {
+		It("returns the stream from the source", func() {
 			stream, _, err := fetcher.StreamBlob(logger, layerInfo)
 			Expect(err).NotTo(HaveOccurred())
 			defer stream.Close()
@@ -186,9 +186,7 @@ var _ = Describe("LayerFetcher", func() {
 			gzipReader, err := gzip.NewReader(stream)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(readAll(gzipReader)).To(Equal("hello-world"))
-
-			close(done)
-		}, 2.0)
+		})
 
 		It("returns the size of the stream", func() {
 			gzipWriter := gzip.NewWriter(tmpFile)
