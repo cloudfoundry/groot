@@ -9,7 +9,6 @@ platform: linux
 
 inputs:
 - name: groot
-  path: src/code.cloudfoundry.org/groot
 
 params:
   DOCKER_REGISTRY_USERNAME:
@@ -20,4 +19,5 @@ caches:
 - path: pkg
 
 run:
-  path: src/code.cloudfoundry.org/groot/ci/unit-integration-tests.sh
+  dir: groot
+  path: ci/unit-integration-tests.sh
