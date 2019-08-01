@@ -3,7 +3,7 @@ module code.cloudfoundry.org/groot
 go 1.12
 
 require (
-	code.cloudfoundry.org/lager v1.0.0
+	code.cloudfoundry.org/lager v1.1.0
 	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/Microsoft/go-winio v0.4.7 // indirect
 	github.com/containers/image v1.5.1
