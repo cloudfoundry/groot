@@ -25,7 +25,7 @@ var (
 )
 
 var _ = SynchronizedBeforeSuite(func() []byte {
-	binPath, err := gexec.Build("code.cloudfoundry.org/groot/integration/cmd/foot")
+	binPath, err := gexec.Build("code.cloudfoundry.org/groot/integration/cmd/foot", "-mod=vendor")
 	Expect(err).NotTo(HaveOccurred())
 	return []byte(binPath)
 }, func(footBinPathBytes []byte) {
