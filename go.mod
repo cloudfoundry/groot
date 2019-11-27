@@ -4,10 +4,10 @@ go 1.12
 
 require (
 	code.cloudfoundry.org/lager v1.1.0
-	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/Microsoft/go-winio v0.4.7 // indirect
 	github.com/containers/image v1.5.1
 	github.com/containers/storage v1.12.1 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/docker/distribution v0.0.0-20180203002934-fea8bd511433 // indirect
 	github.com/docker/docker v1.13.1 // indirect
 	github.com/docker/docker-credential-helpers v0.6.0 // indirect
@@ -28,7 +28,7 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/testify v1.3.0 // indirect
-	github.com/urfave/cli v0.0.0-20180202211318-803d0665796d
+	github.com/urfave/cli/v2 v2.0.0
 	golang.org/x/net v0.0.0-20191028085509-fe3aa8a45271 // indirect
 	golang.org/x/sys v0.0.0-20191029155521-f43be2a4598c // indirect
 	golang.org/x/text v0.3.2 // indirect

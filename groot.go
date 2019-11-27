@@ -14,7 +14,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/containers/image/types"
 	runspec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 type DiskUsage struct {
@@ -80,29 +80,29 @@ func Run(driver Driver, argv []string, driverFlags []cli.Flag, version string) {
 	app.Version = version
 	app.Usage = "A garden image plugin"
 	app.Flags = append([]cli.Flag{
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "config",
 			Value: "",
 			Usage: "Path to config file",
 		},
 	}, driverFlags...)
-	app.Commands = []cli.Command{
+	app.Commands = []*cli.Command{
 		{
 			Name: "create",
 			Flags: []cli.Flag{
-				cli.Int64Flag{
+				&cli.Int64Flag{
 					Name:  "disk-limit-size-bytes",
 					Usage: "Inclusive disk limit (i.e: includes all layers in the filesystem)",
 				},
-				cli.BoolFlag{
+				&cli.BoolFlag{
 					Name:  "exclude-image-from-quota",
 					Usage: "Set disk limit to be exclusive (i.e.: excluding image layers)",
 				},
-				cli.StringFlag{
+				&cli.StringFlag{
 					Name:  "username",
 					Usage: "Username to authenticate in image registry",
 				},
-				cli.StringFlag{
+				&cli.StringFlag{
 					Name:  "password",
 					Usage: "Password to authenticate in image registry",
 				},
@@ -114,17 +114,18 @@ func Run(driver Driver, argv []string, driverFlags []cli.Flag, version string) {
 					Password:           ctx.String("password"),
 				}
 
+				fmt.Println("BBBBB: ", ctx.Int64("disk-limit-size-bytes"))
 				if err := validateArgs(ctx, 2); err != nil {
 					return err
 				}
 
-				if fetcher, err = createFetcher(ctx.Args()[0], ctx.Bool("exclude-image-from-quota"), ctx.Int64("disk-limit-size-bytes"), dockerConfig); err != nil {
+				if fetcher, err = createFetcher(ctx.Args().Get(0), ctx.Bool("exclude-image-from-quota"), ctx.Int64("disk-limit-size-bytes"), dockerConfig); err != nil {
 					return err
 				}
 				defer fetcher.Close()
 				g.ImagePuller = imagepuller.NewImagePuller(fetcher, driver)
 
-				handle := ctx.Args()[1]
+				handle := ctx.Args().Get(1)
 				var runtimeSpec runspec.Spec
 				runtimeSpec, err = g.Create(handle, ctx.Int64("disk-limit-size-bytes"), ctx.Bool("exclude-image-from-quota"))
 				if err != nil {
@@ -137,11 +138,11 @@ func Run(driver Driver, argv []string, driverFlags []cli.Flag, version string) {
 		{
 			Name: "pull",
 			Flags: []cli.Flag{
-				cli.StringFlag{
+				&cli.StringFlag{
 					Name:  "username",
 					Usage: "Username to authenticate in image registry",
 				},
-				cli.StringFlag{
+				&cli.StringFlag{
 					Name:  "password",
 					Usage: "Password to authenticate in image registry",
 				},
@@ -156,7 +157,7 @@ func Run(driver Driver, argv []string, driverFlags []cli.Flag, version string) {
 					return err
 				}
 
-				if fetcher, err = createFetcher(ctx.Args()[0], ctx.Bool("exclude-image-from-quota"), ctx.Int64("disk-limit-size-bytes"), dockerConfig); err != nil {
+				if fetcher, err = createFetcher(ctx.Args().Get(0), ctx.Bool("exclude-image-from-quota"), ctx.Int64("disk-limit-size-bytes"), dockerConfig); err != nil {
 					return err
 				}
 				defer fetcher.Close()
@@ -170,7 +171,7 @@ func Run(driver Driver, argv []string, driverFlags []cli.Flag, version string) {
 				if err := validateArgs(ctx, 1); err != nil {
 					return err
 				}
-				handle := ctx.Args()[0]
+				handle := ctx.Args().Get(0)
 				return g.Delete(handle)
 			},
 		},
@@ -180,7 +181,7 @@ func Run(driver Driver, argv []string, driverFlags []cli.Flag, version string) {
 				if err := validateArgs(ctx, 1); err != nil {
 					return err
 				}
-				handle := ctx.Args()[0]
+				handle := ctx.Args().Get(0)
 				stats, err := g.Stats(handle)
 				if err != nil {
 					return err
@@ -191,7 +192,7 @@ func Run(driver Driver, argv []string, driverFlags []cli.Flag, version string) {
 	}
 	app.Before = func(ctx *cli.Context) error {
 		var err error
-		conf, err = parseConfig(ctx.GlobalString("config"))
+		conf, err = parseConfig(ctx.String("config"))
 		if err != nil {
 			return silentError(err)
 		}
@@ -289,8 +290,8 @@ func skipTLSValidation(baseImageURL *url.URL, trustedRegistries []string) bool {
 }
 
 func validateArgs(ctx *cli.Context, num int) error {
-	if len(ctx.Args()) != num {
-		return fmt.Errorf("Incorrect number of args. Expect %d, got %d", num, len(ctx.Args()))
+	if ctx.Args().Len() != num {
+		return fmt.Errorf("Incorrect number of args. Expect %d, got %d", num, ctx.Args().Len())
 	}
 
 	return nil

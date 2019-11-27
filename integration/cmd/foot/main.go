@@ -5,13 +5,13 @@ import (
 
 	"code.cloudfoundry.org/groot"
 	"code.cloudfoundry.org/groot/integration/cmd/foot/foot"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 func main() {
 	driver := &foot.Foot{}
 	driverFlags := []cli.Flag{
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:        "driver-store",
 			Value:       "",
 			Usage:       "driver store path",

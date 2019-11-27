@@ -358,10 +358,11 @@ var _ = Describe("create", func() {
 
 		Context("when --disk-limit-size-bytes is more than compressed and less than uncompressed image size", func() {
 			BeforeEach(func() {
-				footCmd = newFootCommand(configFilePath, driverStoreDir, "create", rootfsURI, "some-handle", "--disk-limit-size-bytes", "668276")
+				footCmd = newFootCommand(configFilePath, driverStoreDir, "create", "--disk-limit-size-bytes", "668276")
 			})
 
-			It("prints an error", func() {
+			FIt("prints an error", func() {
+				fmt.Printf("%+v\n", footCmd.Args)
 				expectErrorOutput("uncompressed layer size exceeds quota")
 			})
 		})

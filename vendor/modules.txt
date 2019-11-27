@@ -22,6 +22,8 @@ github.com/containers/image/pkg/sysregistriesv2
 github.com/containers/image/pkg/tlsclientconfig
 github.com/containers/image/transports
 github.com/containers/image/types
+# github.com/cpuguy83/go-md2man/v2 v2.0.0
+github.com/cpuguy83/go-md2man/v2/md2man
 # github.com/docker/distribution v0.0.0-20180203002934-fea8bd511433
 github.com/docker/distribution
 github.com/docker/distribution/digestset
@@ -106,10 +108,14 @@ github.com/opencontainers/runc/libcontainer/user
 github.com/opencontainers/runtime-spec/specs-go
 # github.com/pkg/errors v0.8.1
 github.com/pkg/errors
+# github.com/russross/blackfriday/v2 v2.0.1
+github.com/russross/blackfriday/v2
+# github.com/shurcooL/sanitized_anchor_name v1.0.0
+github.com/shurcooL/sanitized_anchor_name
 # github.com/sirupsen/logrus v1.4.2
 github.com/sirupsen/logrus
-# github.com/urfave/cli v0.0.0-20180202211318-803d0665796d
-github.com/urfave/cli
+# github.com/urfave/cli/v2 v2.0.0
+github.com/urfave/cli/v2
 # golang.org/x/net v0.0.0-20191028085509-fe3aa8a45271
 golang.org/x/net/html
 golang.org/x/net/html/atom
