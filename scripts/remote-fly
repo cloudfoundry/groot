@@ -12,9 +12,14 @@ docker_registry_password=$(lpass_note cf-garden-docker password)
 build_yml=$1
 shift
 
+image_args=("--inputs-from" "main/garden" "--image" "garden-ci-image")
+if [[ "$build_yml" == *"windows"* ]]; then
+  image_args=()
+fi
+
 if [ -z "$GARDEN_REMOTE_ATC_URL" ]; then
   fly -t lite login -c http://192.168.100.4:8080
-  DOCKER_REGISTRY_USERNAME="$docker_registry_username" DOCKER_REGISTRY_PASSWORD="$docker_registry_password" fly -t lite e -x -p -i groot=. -c "$build_yml" "$@"
+  DOCKER_REGISTRY_USERNAME="$docker_registry_username" DOCKER_REGISTRY_PASSWORD="$docker_registry_password" fly -t lite e -x -p ${image_args[@]} -i groot=. -c "$build_yml" "$@"
 else
-  DOCKER_REGISTRY_USERNAME="$docker_registry_username" DOCKER_REGISTRY_PASSWORD="$docker_registry_password" fly --target "$GARDEN_REMOTE_ATC_URL" e -p -i groot="$GOPATH"/src/code.cloudfoundry.org/groot -c "$build_yml" "$@"
+  DOCKER_REGISTRY_USERNAME="$docker_registry_username" DOCKER_REGISTRY_PASSWORD="$docker_registry_password" fly --target "$GARDEN_REMOTE_ATC_URL" e -p ${image_args[@]} -i groot=. -c "$build_yml" "$@"
 fi
