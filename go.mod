@@ -30,6 +30,6 @@ require (
 	github.com/urfave/cli v0.0.0-20180202211318-803d0665796d
 	golang.org/x/sys v0.0.0-20200812155832-6a926be9bd1d // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
-	gopkg.in/yaml.v2 v2.3.0
+	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
 )
