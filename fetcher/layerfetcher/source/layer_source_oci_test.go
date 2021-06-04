@@ -93,7 +93,7 @@ var _ = Describe("Layer source: OCI", func() {
 
 		Context("when the image url is invalid", func() {
 			BeforeEach(func() {
-				imageURL = urlParse("oci://///cfgarden/empty:v0.1.0")
+				imageURL = urlParse("oci://///\\cfgarden/empty:v0.1.0")
 			})
 			It("returns an error", func() {
 				_, err := layerSource.Manifest(logger)
