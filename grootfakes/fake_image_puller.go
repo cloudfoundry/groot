@@ -10,11 +10,11 @@ import (
 )
 
 type FakeImagePuller struct {
-	PullStub        func(logger lager.Logger, spec imagepuller.ImageSpec) (imagepuller.Image, error)
+	PullStub        func(lager.Logger, imagepuller.ImageSpec) (imagepuller.Image, error)
 	pullMutex       sync.RWMutex
 	pullArgsForCall []struct {
-		logger lager.Logger
-		spec   imagepuller.ImageSpec
+		arg1 lager.Logger
+		arg2 imagepuller.ImageSpec
 	}
 	pullReturns struct {
 		result1 imagepuller.Image
@@ -28,22 +28,24 @@ type FakeImagePuller struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeImagePuller) Pull(logger lager.Logger, spec imagepuller.ImageSpec) (imagepuller.Image, error) {
+func (fake *FakeImagePuller) Pull(arg1 lager.Logger, arg2 imagepuller.ImageSpec) (imagepuller.Image, error) {
 	fake.pullMutex.Lock()
 	ret, specificReturn := fake.pullReturnsOnCall[len(fake.pullArgsForCall)]
 	fake.pullArgsForCall = append(fake.pullArgsForCall, struct {
-		logger lager.Logger
-		spec   imagepuller.ImageSpec
-	}{logger, spec})
-	fake.recordInvocation("Pull", []interface{}{logger, spec})
+		arg1 lager.Logger
+		arg2 imagepuller.ImageSpec
+	}{arg1, arg2})
+	stub := fake.PullStub
+	fakeReturns := fake.pullReturns
+	fake.recordInvocation("Pull", []interface{}{arg1, arg2})
 	fake.pullMutex.Unlock()
-	if fake.PullStub != nil {
-		return fake.PullStub(logger, spec)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.pullReturns.result1, fake.pullReturns.result2
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeImagePuller) PullCallCount() int {
@@ -52,13 +54,22 @@ func (fake *FakeImagePuller) PullCallCount() int {
 	return len(fake.pullArgsForCall)
 }
 
+func (fake *FakeImagePuller) PullCalls(stub func(lager.Logger, imagepuller.ImageSpec) (imagepuller.Image, error)) {
+	fake.pullMutex.Lock()
+	defer fake.pullMutex.Unlock()
+	fake.PullStub = stub
+}
+
 func (fake *FakeImagePuller) PullArgsForCall(i int) (lager.Logger, imagepuller.ImageSpec) {
 	fake.pullMutex.RLock()
 	defer fake.pullMutex.RUnlock()
-	return fake.pullArgsForCall[i].logger, fake.pullArgsForCall[i].spec
+	argsForCall := fake.pullArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeImagePuller) PullReturns(result1 imagepuller.Image, result2 error) {
+	fake.pullMutex.Lock()
+	defer fake.pullMutex.Unlock()
 	fake.PullStub = nil
 	fake.pullReturns = struct {
 		result1 imagepuller.Image
@@ -67,6 +78,8 @@ func (fake *FakeImagePuller) PullReturns(result1 imagepuller.Image, result2 erro
 }
 
 func (fake *FakeImagePuller) PullReturnsOnCall(i int, result1 imagepuller.Image, result2 error) {
+	fake.pullMutex.Lock()
+	defer fake.pullMutex.Unlock()
 	fake.PullStub = nil
 	if fake.pullReturnsOnCall == nil {
 		fake.pullReturnsOnCall = make(map[int]struct {

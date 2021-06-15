@@ -7,31 +7,31 @@ import (
 
 	"code.cloudfoundry.org/groot"
 	"code.cloudfoundry.org/lager"
-	runspec "github.com/opencontainers/runtime-spec/specs-go"
+	specs "github.com/opencontainers/runtime-spec/specs-go"
 )
 
 type FakeDriver struct {
-	BundleStub        func(logger lager.Logger, bundleID string, layerIDs []string, diskLimit int64) (runspec.Spec, error)
+	BundleStub        func(lager.Logger, string, []string, int64) (specs.Spec, error)
 	bundleMutex       sync.RWMutex
 	bundleArgsForCall []struct {
-		logger    lager.Logger
-		bundleID  string
-		layerIDs  []string
-		diskLimit int64
+		arg1 lager.Logger
+		arg2 string
+		arg3 []string
+		arg4 int64
 	}
 	bundleReturns struct {
-		result1 runspec.Spec
+		result1 specs.Spec
 		result2 error
 	}
 	bundleReturnsOnCall map[int]struct {
-		result1 runspec.Spec
+		result1 specs.Spec
 		result2 error
 	}
-	DeleteStub        func(logger lager.Logger, bundleID string) error
+	DeleteStub        func(lager.Logger, string) error
 	deleteMutex       sync.RWMutex
 	deleteArgsForCall []struct {
-		logger   lager.Logger
-		bundleID string
+		arg1 lager.Logger
+		arg2 string
 	}
 	deleteReturns struct {
 		result1 error
@@ -39,11 +39,11 @@ type FakeDriver struct {
 	deleteReturnsOnCall map[int]struct {
 		result1 error
 	}
-	StatsStub        func(logger lager.Logger, bundleID string) (groot.VolumeStats, error)
+	StatsStub        func(lager.Logger, string) (groot.VolumeStats, error)
 	statsMutex       sync.RWMutex
 	statsArgsForCall []struct {
-		logger   lager.Logger
-		bundleID string
+		arg1 lager.Logger
+		arg2 string
 	}
 	statsReturns struct {
 		result1 groot.VolumeStats
@@ -53,26 +53,13 @@ type FakeDriver struct {
 		result1 groot.VolumeStats
 		result2 error
 	}
-	WriteMetadataStub        func(logger lager.Logger, bundleID string, imageMetadata groot.ImageMetadata) error
-	writeMetadataMutex       sync.RWMutex
-	writeMetadataArgsForCall []struct {
-		logger        lager.Logger
-		bundleID      string
-		imageMetadata groot.ImageMetadata
-	}
-	writeMetadataReturns struct {
-		result1 error
-	}
-	writeMetadataReturnsOnCall map[int]struct {
-		result1 error
-	}
-	UnpackStub        func(logger lager.Logger, layerID string, parentIDs []string, layerTar io.Reader) (int64, error)
+	UnpackStub        func(lager.Logger, string, []string, io.Reader) (int64, error)
 	unpackMutex       sync.RWMutex
 	unpackArgsForCall []struct {
-		logger    lager.Logger
-		layerID   string
-		parentIDs []string
-		layerTar  io.Reader
+		arg1 lager.Logger
+		arg2 string
+		arg3 []string
+		arg4 io.Reader
 	}
 	unpackReturns struct {
 		result1 int64
@@ -82,33 +69,48 @@ type FakeDriver struct {
 		result1 int64
 		result2 error
 	}
+	WriteMetadataStub        func(lager.Logger, string, groot.ImageMetadata) error
+	writeMetadataMutex       sync.RWMutex
+	writeMetadataArgsForCall []struct {
+		arg1 lager.Logger
+		arg2 string
+		arg3 groot.ImageMetadata
+	}
+	writeMetadataReturns struct {
+		result1 error
+	}
+	writeMetadataReturnsOnCall map[int]struct {
+		result1 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeDriver) Bundle(logger lager.Logger, bundleID string, layerIDs []string, diskLimit int64) (runspec.Spec, error) {
-	var layerIDsCopy []string
-	if layerIDs != nil {
-		layerIDsCopy = make([]string, len(layerIDs))
-		copy(layerIDsCopy, layerIDs)
+func (fake *FakeDriver) Bundle(arg1 lager.Logger, arg2 string, arg3 []string, arg4 int64) (specs.Spec, error) {
+	var arg3Copy []string
+	if arg3 != nil {
+		arg3Copy = make([]string, len(arg3))
+		copy(arg3Copy, arg3)
 	}
 	fake.bundleMutex.Lock()
 	ret, specificReturn := fake.bundleReturnsOnCall[len(fake.bundleArgsForCall)]
 	fake.bundleArgsForCall = append(fake.bundleArgsForCall, struct {
-		logger    lager.Logger
-		bundleID  string
-		layerIDs  []string
-		diskLimit int64
-	}{logger, bundleID, layerIDsCopy, diskLimit})
-	fake.recordInvocation("Bundle", []interface{}{logger, bundleID, layerIDsCopy, diskLimit})
+		arg1 lager.Logger
+		arg2 string
+		arg3 []string
+		arg4 int64
+	}{arg1, arg2, arg3Copy, arg4})
+	stub := fake.BundleStub
+	fakeReturns := fake.bundleReturns
+	fake.recordInvocation("Bundle", []interface{}{arg1, arg2, arg3Copy, arg4})
 	fake.bundleMutex.Unlock()
-	if fake.BundleStub != nil {
-		return fake.BundleStub(logger, bundleID, layerIDs, diskLimit)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.bundleReturns.result1, fake.bundleReturns.result2
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeDriver) BundleCallCount() int {
@@ -117,50 +119,63 @@ func (fake *FakeDriver) BundleCallCount() int {
 	return len(fake.bundleArgsForCall)
 }
 
+func (fake *FakeDriver) BundleCalls(stub func(lager.Logger, string, []string, int64) (specs.Spec, error)) {
+	fake.bundleMutex.Lock()
+	defer fake.bundleMutex.Unlock()
+	fake.BundleStub = stub
+}
+
 func (fake *FakeDriver) BundleArgsForCall(i int) (lager.Logger, string, []string, int64) {
 	fake.bundleMutex.RLock()
 	defer fake.bundleMutex.RUnlock()
-	return fake.bundleArgsForCall[i].logger, fake.bundleArgsForCall[i].bundleID, fake.bundleArgsForCall[i].layerIDs, fake.bundleArgsForCall[i].diskLimit
+	argsForCall := fake.bundleArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
-func (fake *FakeDriver) BundleReturns(result1 runspec.Spec, result2 error) {
+func (fake *FakeDriver) BundleReturns(result1 specs.Spec, result2 error) {
+	fake.bundleMutex.Lock()
+	defer fake.bundleMutex.Unlock()
 	fake.BundleStub = nil
 	fake.bundleReturns = struct {
-		result1 runspec.Spec
+		result1 specs.Spec
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeDriver) BundleReturnsOnCall(i int, result1 runspec.Spec, result2 error) {
+func (fake *FakeDriver) BundleReturnsOnCall(i int, result1 specs.Spec, result2 error) {
+	fake.bundleMutex.Lock()
+	defer fake.bundleMutex.Unlock()
 	fake.BundleStub = nil
 	if fake.bundleReturnsOnCall == nil {
 		fake.bundleReturnsOnCall = make(map[int]struct {
-			result1 runspec.Spec
+			result1 specs.Spec
 			result2 error
 		})
 	}
 	fake.bundleReturnsOnCall[i] = struct {
-		result1 runspec.Spec
+		result1 specs.Spec
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeDriver) Delete(logger lager.Logger, bundleID string) error {
+func (fake *FakeDriver) Delete(arg1 lager.Logger, arg2 string) error {
 	fake.deleteMutex.Lock()
 	ret, specificReturn := fake.deleteReturnsOnCall[len(fake.deleteArgsForCall)]
 	fake.deleteArgsForCall = append(fake.deleteArgsForCall, struct {
-		logger   lager.Logger
-		bundleID string
-	}{logger, bundleID})
-	fake.recordInvocation("Delete", []interface{}{logger, bundleID})
+		arg1 lager.Logger
+		arg2 string
+	}{arg1, arg2})
+	stub := fake.DeleteStub
+	fakeReturns := fake.deleteReturns
+	fake.recordInvocation("Delete", []interface{}{arg1, arg2})
 	fake.deleteMutex.Unlock()
-	if fake.DeleteStub != nil {
-		return fake.DeleteStub(logger, bundleID)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	return fake.deleteReturns.result1
+	return fakeReturns.result1
 }
 
 func (fake *FakeDriver) DeleteCallCount() int {
@@ -169,13 +184,22 @@ func (fake *FakeDriver) DeleteCallCount() int {
 	return len(fake.deleteArgsForCall)
 }
 
+func (fake *FakeDriver) DeleteCalls(stub func(lager.Logger, string) error) {
+	fake.deleteMutex.Lock()
+	defer fake.deleteMutex.Unlock()
+	fake.DeleteStub = stub
+}
+
 func (fake *FakeDriver) DeleteArgsForCall(i int) (lager.Logger, string) {
 	fake.deleteMutex.RLock()
 	defer fake.deleteMutex.RUnlock()
-	return fake.deleteArgsForCall[i].logger, fake.deleteArgsForCall[i].bundleID
+	argsForCall := fake.deleteArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeDriver) DeleteReturns(result1 error) {
+	fake.deleteMutex.Lock()
+	defer fake.deleteMutex.Unlock()
 	fake.DeleteStub = nil
 	fake.deleteReturns = struct {
 		result1 error
@@ -183,6 +207,8 @@ func (fake *FakeDriver) DeleteReturns(result1 error) {
 }
 
 func (fake *FakeDriver) DeleteReturnsOnCall(i int, result1 error) {
+	fake.deleteMutex.Lock()
+	defer fake.deleteMutex.Unlock()
 	fake.DeleteStub = nil
 	if fake.deleteReturnsOnCall == nil {
 		fake.deleteReturnsOnCall = make(map[int]struct {
@@ -194,22 +220,24 @@ func (fake *FakeDriver) DeleteReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeDriver) Stats(logger lager.Logger, bundleID string) (groot.VolumeStats, error) {
+func (fake *FakeDriver) Stats(arg1 lager.Logger, arg2 string) (groot.VolumeStats, error) {
 	fake.statsMutex.Lock()
 	ret, specificReturn := fake.statsReturnsOnCall[len(fake.statsArgsForCall)]
 	fake.statsArgsForCall = append(fake.statsArgsForCall, struct {
-		logger   lager.Logger
-		bundleID string
-	}{logger, bundleID})
-	fake.recordInvocation("Stats", []interface{}{logger, bundleID})
+		arg1 lager.Logger
+		arg2 string
+	}{arg1, arg2})
+	stub := fake.StatsStub
+	fakeReturns := fake.statsReturns
+	fake.recordInvocation("Stats", []interface{}{arg1, arg2})
 	fake.statsMutex.Unlock()
-	if fake.StatsStub != nil {
-		return fake.StatsStub(logger, bundleID)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.statsReturns.result1, fake.statsReturns.result2
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeDriver) StatsCallCount() int {
@@ -218,13 +246,22 @@ func (fake *FakeDriver) StatsCallCount() int {
 	return len(fake.statsArgsForCall)
 }
 
+func (fake *FakeDriver) StatsCalls(stub func(lager.Logger, string) (groot.VolumeStats, error)) {
+	fake.statsMutex.Lock()
+	defer fake.statsMutex.Unlock()
+	fake.StatsStub = stub
+}
+
 func (fake *FakeDriver) StatsArgsForCall(i int) (lager.Logger, string) {
 	fake.statsMutex.RLock()
 	defer fake.statsMutex.RUnlock()
-	return fake.statsArgsForCall[i].logger, fake.statsArgsForCall[i].bundleID
+	argsForCall := fake.statsArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
 }
 
 func (fake *FakeDriver) StatsReturns(result1 groot.VolumeStats, result2 error) {
+	fake.statsMutex.Lock()
+	defer fake.statsMutex.Unlock()
 	fake.StatsStub = nil
 	fake.statsReturns = struct {
 		result1 groot.VolumeStats
@@ -233,6 +270,8 @@ func (fake *FakeDriver) StatsReturns(result1 groot.VolumeStats, result2 error) {
 }
 
 func (fake *FakeDriver) StatsReturnsOnCall(i int, result1 groot.VolumeStats, result2 error) {
+	fake.statsMutex.Lock()
+	defer fake.statsMutex.Unlock()
 	fake.StatsStub = nil
 	if fake.statsReturnsOnCall == nil {
 		fake.statsReturnsOnCall = make(map[int]struct {
@@ -246,79 +285,31 @@ func (fake *FakeDriver) StatsReturnsOnCall(i int, result1 groot.VolumeStats, res
 	}{result1, result2}
 }
 
-func (fake *FakeDriver) WriteMetadata(logger lager.Logger, bundleID string, imageMetadata groot.ImageMetadata) error {
-	fake.writeMetadataMutex.Lock()
-	ret, specificReturn := fake.writeMetadataReturnsOnCall[len(fake.writeMetadataArgsForCall)]
-	fake.writeMetadataArgsForCall = append(fake.writeMetadataArgsForCall, struct {
-		logger        lager.Logger
-		bundleID      string
-		imageMetadata groot.ImageMetadata
-	}{logger, bundleID, imageMetadata})
-	fake.recordInvocation("WriteMetadata", []interface{}{logger, bundleID, imageMetadata})
-	fake.writeMetadataMutex.Unlock()
-	if fake.WriteMetadataStub != nil {
-		return fake.WriteMetadataStub(logger, bundleID, imageMetadata)
-	}
-	if specificReturn {
-		return ret.result1
-	}
-	return fake.writeMetadataReturns.result1
-}
-
-func (fake *FakeDriver) WriteMetadataCallCount() int {
-	fake.writeMetadataMutex.RLock()
-	defer fake.writeMetadataMutex.RUnlock()
-	return len(fake.writeMetadataArgsForCall)
-}
-
-func (fake *FakeDriver) WriteMetadataArgsForCall(i int) (lager.Logger, string, groot.ImageMetadata) {
-	fake.writeMetadataMutex.RLock()
-	defer fake.writeMetadataMutex.RUnlock()
-	return fake.writeMetadataArgsForCall[i].logger, fake.writeMetadataArgsForCall[i].bundleID, fake.writeMetadataArgsForCall[i].imageMetadata
-}
-
-func (fake *FakeDriver) WriteMetadataReturns(result1 error) {
-	fake.WriteMetadataStub = nil
-	fake.writeMetadataReturns = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeDriver) WriteMetadataReturnsOnCall(i int, result1 error) {
-	fake.WriteMetadataStub = nil
-	if fake.writeMetadataReturnsOnCall == nil {
-		fake.writeMetadataReturnsOnCall = make(map[int]struct {
-			result1 error
-		})
-	}
-	fake.writeMetadataReturnsOnCall[i] = struct {
-		result1 error
-	}{result1}
-}
-
-func (fake *FakeDriver) Unpack(logger lager.Logger, layerID string, parentIDs []string, layerTar io.Reader) (int64, error) {
-	var parentIDsCopy []string
-	if parentIDs != nil {
-		parentIDsCopy = make([]string, len(parentIDs))
-		copy(parentIDsCopy, parentIDs)
+func (fake *FakeDriver) Unpack(arg1 lager.Logger, arg2 string, arg3 []string, arg4 io.Reader) (int64, error) {
+	var arg3Copy []string
+	if arg3 != nil {
+		arg3Copy = make([]string, len(arg3))
+		copy(arg3Copy, arg3)
 	}
 	fake.unpackMutex.Lock()
 	ret, specificReturn := fake.unpackReturnsOnCall[len(fake.unpackArgsForCall)]
 	fake.unpackArgsForCall = append(fake.unpackArgsForCall, struct {
-		logger    lager.Logger
-		layerID   string
-		parentIDs []string
-		layerTar  io.Reader
-	}{logger, layerID, parentIDsCopy, layerTar})
-	fake.recordInvocation("Unpack", []interface{}{logger, layerID, parentIDsCopy, layerTar})
+		arg1 lager.Logger
+		arg2 string
+		arg3 []string
+		arg4 io.Reader
+	}{arg1, arg2, arg3Copy, arg4})
+	stub := fake.UnpackStub
+	fakeReturns := fake.unpackReturns
+	fake.recordInvocation("Unpack", []interface{}{arg1, arg2, arg3Copy, arg4})
 	fake.unpackMutex.Unlock()
-	if fake.UnpackStub != nil {
-		return fake.UnpackStub(logger, layerID, parentIDs, layerTar)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.unpackReturns.result1, fake.unpackReturns.result2
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeDriver) UnpackCallCount() int {
@@ -327,13 +318,22 @@ func (fake *FakeDriver) UnpackCallCount() int {
 	return len(fake.unpackArgsForCall)
 }
 
+func (fake *FakeDriver) UnpackCalls(stub func(lager.Logger, string, []string, io.Reader) (int64, error)) {
+	fake.unpackMutex.Lock()
+	defer fake.unpackMutex.Unlock()
+	fake.UnpackStub = stub
+}
+
 func (fake *FakeDriver) UnpackArgsForCall(i int) (lager.Logger, string, []string, io.Reader) {
 	fake.unpackMutex.RLock()
 	defer fake.unpackMutex.RUnlock()
-	return fake.unpackArgsForCall[i].logger, fake.unpackArgsForCall[i].layerID, fake.unpackArgsForCall[i].parentIDs, fake.unpackArgsForCall[i].layerTar
+	argsForCall := fake.unpackArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
 func (fake *FakeDriver) UnpackReturns(result1 int64, result2 error) {
+	fake.unpackMutex.Lock()
+	defer fake.unpackMutex.Unlock()
 	fake.UnpackStub = nil
 	fake.unpackReturns = struct {
 		result1 int64
@@ -342,6 +342,8 @@ func (fake *FakeDriver) UnpackReturns(result1 int64, result2 error) {
 }
 
 func (fake *FakeDriver) UnpackReturnsOnCall(i int, result1 int64, result2 error) {
+	fake.unpackMutex.Lock()
+	defer fake.unpackMutex.Unlock()
 	fake.UnpackStub = nil
 	if fake.unpackReturnsOnCall == nil {
 		fake.unpackReturnsOnCall = make(map[int]struct {
@@ -355,6 +357,69 @@ func (fake *FakeDriver) UnpackReturnsOnCall(i int, result1 int64, result2 error)
 	}{result1, result2}
 }
 
+func (fake *FakeDriver) WriteMetadata(arg1 lager.Logger, arg2 string, arg3 groot.ImageMetadata) error {
+	fake.writeMetadataMutex.Lock()
+	ret, specificReturn := fake.writeMetadataReturnsOnCall[len(fake.writeMetadataArgsForCall)]
+	fake.writeMetadataArgsForCall = append(fake.writeMetadataArgsForCall, struct {
+		arg1 lager.Logger
+		arg2 string
+		arg3 groot.ImageMetadata
+	}{arg1, arg2, arg3})
+	stub := fake.WriteMetadataStub
+	fakeReturns := fake.writeMetadataReturns
+	fake.recordInvocation("WriteMetadata", []interface{}{arg1, arg2, arg3})
+	fake.writeMetadataMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
+	}
+	if specificReturn {
+		return ret.result1
+	}
+	return fakeReturns.result1
+}
+
+func (fake *FakeDriver) WriteMetadataCallCount() int {
+	fake.writeMetadataMutex.RLock()
+	defer fake.writeMetadataMutex.RUnlock()
+	return len(fake.writeMetadataArgsForCall)
+}
+
+func (fake *FakeDriver) WriteMetadataCalls(stub func(lager.Logger, string, groot.ImageMetadata) error) {
+	fake.writeMetadataMutex.Lock()
+	defer fake.writeMetadataMutex.Unlock()
+	fake.WriteMetadataStub = stub
+}
+
+func (fake *FakeDriver) WriteMetadataArgsForCall(i int) (lager.Logger, string, groot.ImageMetadata) {
+	fake.writeMetadataMutex.RLock()
+	defer fake.writeMetadataMutex.RUnlock()
+	argsForCall := fake.writeMetadataArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+}
+
+func (fake *FakeDriver) WriteMetadataReturns(result1 error) {
+	fake.writeMetadataMutex.Lock()
+	defer fake.writeMetadataMutex.Unlock()
+	fake.WriteMetadataStub = nil
+	fake.writeMetadataReturns = struct {
+		result1 error
+	}{result1}
+}
+
+func (fake *FakeDriver) WriteMetadataReturnsOnCall(i int, result1 error) {
+	fake.writeMetadataMutex.Lock()
+	defer fake.writeMetadataMutex.Unlock()
+	fake.WriteMetadataStub = nil
+	if fake.writeMetadataReturnsOnCall == nil {
+		fake.writeMetadataReturnsOnCall = make(map[int]struct {
+			result1 error
+		})
+	}
+	fake.writeMetadataReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
+}
+
 func (fake *FakeDriver) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -364,10 +429,10 @@ func (fake *FakeDriver) Invocations() map[string][][]interface{} {
 	defer fake.deleteMutex.RUnlock()
 	fake.statsMutex.RLock()
 	defer fake.statsMutex.RUnlock()
-	fake.writeMetadataMutex.RLock()
-	defer fake.writeMetadataMutex.RUnlock()
 	fake.unpackMutex.RLock()
 	defer fake.unpackMutex.RUnlock()
+	fake.writeMetadataMutex.RLock()
+	defer fake.writeMetadataMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value

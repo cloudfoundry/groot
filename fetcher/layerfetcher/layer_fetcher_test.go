@@ -13,7 +13,7 @@ import (
 	"code.cloudfoundry.org/groot/fetcher/layerfetcher"
 	"code.cloudfoundry.org/groot/fetcher/layerfetcher/layerfetcherfakes"
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/containers/image/types"
+	"github.com/containers/image/v5/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	digestpkg "github.com/opencontainers/go-digest"

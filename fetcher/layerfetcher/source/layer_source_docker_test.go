@@ -13,11 +13,11 @@ import (
 	"code.cloudfoundry.org/groot/imagepuller"
 	"code.cloudfoundry.org/groot/testhelpers"
 	"code.cloudfoundry.org/lager/lagertest"
-	"github.com/containers/image/types"
+	"github.com/containers/image/v5/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
-	"github.com/opencontainers/image-spec/specs-go/v1"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 const emptyImageConfigBlob = "sha256:cdc9e972ad70c8dea1d185462fbc6120399e0839d02e33738b6c1c71b75b1c35"
@@ -184,7 +184,7 @@ var _ = Describe("Layer source: Docker", func() {
 		Context("when registry communication fails temporarily", func() {
 			BeforeEach(func() {
 				fakeRegistry.Start()
-				fakeRegistry.FailNextRequests(2)
+				fakeRegistry.FailNextManifestRequests(2)
 				systemContext.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
 				imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:groot", fakeRegistry.Addr()))
 			})
@@ -444,7 +444,7 @@ var _ = Describe("Layer source: Docker", func() {
 			})
 
 			It("returns an error", func() {
-				Expect(blobErr).To(MatchError(ContainSubstring("fetching blob 404")))
+				Expect(blobErr).To(MatchError(And(ContainSubstring("Error fetching blob"), ContainSubstring("404"))))
 			})
 		})
 
@@ -495,7 +495,7 @@ var _ = Describe("Layer source: Docker", func() {
 				fakeRegistry.Start()
 				systemContext.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
 				imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:groot", fakeRegistry.Addr()))
-				fakeRegistry.FailNextRequests(2)
+				fakeRegistry.FailNextBlobRequests(2)
 			})
 
 			AfterEach(func() {

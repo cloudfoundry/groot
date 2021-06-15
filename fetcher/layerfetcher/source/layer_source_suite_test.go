@@ -8,7 +8,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/containers/image/types"
+	"github.com/containers/image/v5/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
