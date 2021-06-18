@@ -4,14 +4,11 @@ go 1.16
 
 require (
 	code.cloudfoundry.org/lager v2.0.0+incompatible
-	github.com/containers/image/v5 v5.12.0
+	github.com/containers/image/v5 v5.13.2
 	github.com/containers/libtrust v0.0.0-20200511145503-9c3a6c22cd9a // indirect
-	github.com/containers/storage v1.32.2 // indirect
 	github.com/docker/docker v20.10.7+incompatible // indirect
-	github.com/docker/docker-credential-helpers v0.6.4 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
-	github.com/klauspost/compress v1.13.1 // indirect
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.13.0
 	github.com/opencontainers/go-digest v1.0.0
