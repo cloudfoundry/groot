@@ -13,7 +13,7 @@ github.com/Microsoft/go-winio/pkg/guid
 github.com/beorn7/perks/quantile
 # github.com/cespare/xxhash/v2 v2.1.1
 github.com/cespare/xxhash/v2
-# github.com/containers/image/v5 v5.15.0
+# github.com/containers/image/v5 v5.15.1
 ## explicit
 github.com/containers/image/v5/directory/explicitfilepath
 github.com/containers/image/v5/docker
@@ -47,7 +47,6 @@ github.com/containers/libtrust
 # github.com/containers/ocicrypt v1.1.2
 github.com/containers/ocicrypt/spec
 # github.com/containers/storage v1.34.0
-## explicit
 github.com/containers/storage/pkg/chunked/compressor
 github.com/containers/storage/pkg/chunked/internal
 github.com/containers/storage/pkg/homedir
