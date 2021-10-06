@@ -13,7 +13,7 @@ github.com/Microsoft/go-winio/pkg/guid
 github.com/beorn7/perks/quantile
 # github.com/cespare/xxhash/v2 v2.1.1
 github.com/cespare/xxhash/v2
-# github.com/containers/image/v5 v5.15.1
+# github.com/containers/image/v5 v5.16.1
 ## explicit
 github.com/containers/image/v5/directory/explicitfilepath
 github.com/containers/image/v5/docker
@@ -24,6 +24,7 @@ github.com/containers/image/v5/internal/blobinfocache
 github.com/containers/image/v5/internal/iolimits
 github.com/containers/image/v5/internal/pkg/keyctl
 github.com/containers/image/v5/internal/pkg/platform
+github.com/containers/image/v5/internal/putblobdigest
 github.com/containers/image/v5/internal/rootless
 github.com/containers/image/v5/internal/types
 github.com/containers/image/v5/internal/uploadreader
@@ -46,7 +47,7 @@ github.com/containers/image/v5/version
 github.com/containers/libtrust
 # github.com/containers/ocicrypt v1.1.2
 github.com/containers/ocicrypt/spec
-# github.com/containers/storage v1.34.0
+# github.com/containers/storage v1.37.0
 github.com/containers/storage/pkg/chunked/compressor
 github.com/containers/storage/pkg/chunked/internal
 github.com/containers/storage/pkg/homedir
@@ -75,7 +76,6 @@ github.com/docker/distribution/registry/client/transport
 github.com/docker/distribution/registry/storage/cache
 github.com/docker/distribution/registry/storage/cache/memory
 # github.com/docker/docker v20.10.8+incompatible
-## explicit
 github.com/docker/docker/api/types/versions
 # github.com/docker/docker-credential-helpers v0.6.4
 github.com/docker/docker-credential-helpers/client
@@ -97,9 +97,6 @@ github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
-# github.com/golang/snappy v0.0.4
-## explicit
-github.com/golang/snappy
 # github.com/gorilla/mux v1.8.0
 ## explicit
 github.com/gorilla/mux
@@ -108,12 +105,12 @@ github.com/gorilla/mux
 github.com/hashicorp/errwrap
 # github.com/hashicorp/go-multierror v1.1.1
 github.com/hashicorp/go-multierror
-# github.com/klauspost/compress v1.13.4
-## explicit
+# github.com/klauspost/compress v1.13.6
 github.com/klauspost/compress
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse
 github.com/klauspost/compress/huff0
+github.com/klauspost/compress/internal/snapref
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
 # github.com/klauspost/pgzip v1.2.5
@@ -167,11 +164,11 @@ github.com/onsi/gomega/types
 # github.com/opencontainers/go-digest v1.0.0
 ## explicit
 github.com/opencontainers/go-digest
-# github.com/opencontainers/image-spec v1.0.2-0.20190823105129-775207bd45b6
+# github.com/opencontainers/image-spec v1.0.2-0.20210819154149-5ad6f50d6283
 ## explicit
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
-# github.com/opencontainers/runc v1.0.1
+# github.com/opencontainers/runc v1.0.2
 github.com/opencontainers/runc/libcontainer/user
 # github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417
 ## explicit
@@ -210,7 +207,7 @@ github.com/ulikunitz/xz/lzma
 # github.com/urfave/cli v1.22.5 => github.com/urfave/cli v1.22.1
 ## explicit
 github.com/urfave/cli
-# github.com/vbatts/tar-split v0.11.1
+# github.com/vbatts/tar-split v0.11.2
 github.com/vbatts/tar-split/archive/tar
 # golang.org/x/net v0.0.0-20210805182204-aaa1db679c0d
 ## explicit
@@ -220,8 +217,7 @@ golang.org/x/net/html/atom
 golang.org/x/net/html/charset
 golang.org/x/net/internal/socks
 golang.org/x/net/proxy
-# golang.org/x/sys v0.0.0-20210809222454-d867a43fc93e
-## explicit
+# golang.org/x/sys v0.0.0-20210910150752-751e447fb3d0
 golang.org/x/sys/execabs
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
