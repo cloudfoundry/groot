@@ -7,7 +7,7 @@ $env:PATH = $env:GOBIN +";" + $env:PATH
 go version
 
 Write-Host "Installing Ginkgo"
-go get github.com/onsi/ginkgo/ginkgo
+go install github.com/onsi/ginkgo/ginkgo@latest
 if ($LastExitCode -ne 0) {
     throw "Ginkgo installation process returned error code: $LastExitCode"
 }
