@@ -11,7 +11,7 @@ github.com/BurntSushi/toml/internal
 ## explicit; go 1.13
 github.com/Microsoft/go-winio
 github.com/Microsoft/go-winio/pkg/guid
-# github.com/containers/image/v5 v5.23.0
+# github.com/containers/image/v5 v5.23.1
 ## explicit; go 1.17
 github.com/containers/image/v5/directory/explicitfilepath
 github.com/containers/image/v5/docker

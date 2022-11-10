@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	code.cloudfoundry.org/lager v2.0.0+incompatible
-	github.com/containers/image/v5 v5.23.0
+	github.com/containers/image/v5 v5.23.1
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.19.0
 	github.com/opencontainers/go-digest v1.0.0
