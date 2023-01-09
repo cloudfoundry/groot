@@ -16,4 +16,4 @@ run:
   - "-ExecutionPolicy"
   - "Bypass"
   - "-File"
-  - ci/unit-integration-tests-windows.ps1
+  - ci/test-windows/task.ps1
