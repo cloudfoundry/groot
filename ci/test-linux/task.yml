@@ -15,3 +15,10 @@ caches:
 run:
   dir: groot
   path: ci/unit-integration-tests.sh
+
+image_resource:
+  type: registry-image
+  source:
+    repository: c2cnetworking/tas-runtime-deploy
+    tag: latest
+

@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -xe
+
+cd groot
+
+go get github.com/containers/image/v5@main
+go mod tidy
+go mod vendor
