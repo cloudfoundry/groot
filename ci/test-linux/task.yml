@@ -14,7 +14,7 @@ caches:
 
 run:
   dir: groot
-  path: ci/unit-integration-tests.sh
+  path: ci/test-linux/task
 
 image_resource:
   type: registry-image
