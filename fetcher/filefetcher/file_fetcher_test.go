@@ -13,8 +13,8 @@ import (
 
 	"code.cloudfoundry.org/groot/fetcher/filefetcher"
 	"code.cloudfoundry.org/groot/imagepuller"
-	"code.cloudfoundry.org/lager/lagertest"
-	. "github.com/onsi/ginkgo"
+	"code.cloudfoundry.org/lager/v3/lagertest"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 )

@@ -6,7 +6,7 @@ import (
 
 	"code.cloudfoundry.org/groot"
 	"code.cloudfoundry.org/groot/imagepuller"
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 )
 
 type FakeImagePuller struct {

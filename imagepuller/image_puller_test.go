@@ -11,9 +11,9 @@ import (
 
 	"code.cloudfoundry.org/groot/imagepuller"
 	"code.cloudfoundry.org/groot/imagepuller/imagepullerfakes"
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagertest"
-	. "github.com/onsi/ginkgo"
+	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager/v3/lagertest"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	specsv1 "github.com/opencontainers/image-spec/specs-go/v1"
 )

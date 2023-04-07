@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"code.cloudfoundry.org/groot/fetcher/layerfetcher"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"io"

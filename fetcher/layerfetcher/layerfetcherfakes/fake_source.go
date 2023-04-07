@@ -6,7 +6,7 @@ import (
 
 	"code.cloudfoundry.org/groot/fetcher/layerfetcher"
 	"code.cloudfoundry.org/groot/imagepuller"
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 	"github.com/containers/image/v5/types"
 )
 

@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 
 	"code.cloudfoundry.org/groot"
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 )
 

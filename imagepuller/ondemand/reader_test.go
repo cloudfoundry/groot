@@ -6,7 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	. "code.cloudfoundry.org/groot/imagepuller/ondemand"
