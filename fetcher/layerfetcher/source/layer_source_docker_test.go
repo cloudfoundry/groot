@@ -444,7 +444,7 @@ var _ = Describe("Layer source: Docker", func() {
 			})
 
 			It("returns an error", func() {
-				Expect(blobErr).To(MatchError(And(ContainSubstring("blob unknown to registry"), ContainSubstring("404"))))
+				Expect(blobErr).To(MatchError(And(ContainSubstring("blob unknown to registry"), ContainSubstring("3a50a9ff45117c33606ba54f4a7f55cebbdd2e96a06ab48e7e981a02ff1fd665"))))
 			})
 		})
 
