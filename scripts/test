@@ -37,5 +37,5 @@ done
   if [ -z ${DOCKER_REGISTRY_USERNAME+x} ]; then
     set_default_groot_env
   fi
-  ginkgo -mod vendor -r -keepGoing -failOnPending -randomizeAllSpecs -randomizeSuites -p "$@"
+  ginkgo -mod vendor -r -keep-going -fail-on-pending -randomize-all -randomize-suites -p "$@"
 )
