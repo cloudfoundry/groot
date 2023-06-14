@@ -3,7 +3,7 @@ module code.cloudfoundry.org/groot
 go 1.19
 
 require (
-	code.cloudfoundry.org/lager/v3 v3.0.1
+	code.cloudfoundry.org/lager/v3 v3.0.2
 	github.com/containers/image/v5 v5.25.0
 	github.com/onsi/ginkgo/v2 v2.10.0
 	github.com/onsi/gomega v1.27.8
