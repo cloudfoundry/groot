@@ -81,8 +81,8 @@ github.com/docker/distribution/registry/client/auth/challenge
 # github.com/docker/docker v24.0.4+incompatible
 ## explicit
 github.com/docker/docker/api/types/versions
-# github.com/docker/docker-credential-helpers v0.7.0
-## explicit; go 1.18
+# github.com/docker/docker-credential-helpers v0.8.0
+## explicit; go 1.19
 github.com/docker/docker-credential-helpers/client
 github.com/docker/docker-credential-helpers/credentials
 # github.com/docker/go-connections v0.4.0
@@ -225,7 +225,7 @@ github.com/urfave/cli
 github.com/vbatts/tar-split/archive/tar
 github.com/vbatts/tar-split/tar/asm
 github.com/vbatts/tar-split/tar/storage
-# golang.org/x/exp v0.0.0-20230711153332-06a737ee72cb
+# golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1
 ## explicit; go 1.20
 golang.org/x/exp/constraints
 golang.org/x/exp/maps
@@ -238,7 +238,6 @@ golang.org/x/net/html/atom
 golang.org/x/net/html/charset
 # golang.org/x/sys v0.10.0
 ## explicit; go 1.17
-golang.org/x/sys/execabs
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
 golang.org/x/sys/windows
