@@ -225,7 +225,7 @@ github.com/urfave/cli
 github.com/vbatts/tar-split/archive/tar
 github.com/vbatts/tar-split/tar/asm
 github.com/vbatts/tar-split/tar/storage
-# golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1
+# golang.org/x/exp v0.0.0-20230713183714-613f0c0eb8a1 => golang.org/x/exp v0.0.0-20230724220655-d98519c11495
 ## explicit; go 1.20
 golang.org/x/exp/constraints
 golang.org/x/exp/maps
@@ -302,3 +302,4 @@ gopkg.in/yaml.v2
 ## explicit
 gopkg.in/yaml.v3
 # github.com/urfave/cli => github.com/urfave/cli v1.22.1
+# golang.org/x/exp => golang.org/x/exp v0.0.0-20230724220655-d98519c11495
