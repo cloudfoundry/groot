@@ -156,6 +156,15 @@ var _ = Describe("pull", func() {
 				expectErrorOutput("lol")
 			})
 		})
+		Context("when the specified log format is invalid", func() {
+			BeforeEach(func() {
+				writeFile(configFilePath, "log_format: lol")
+			})
+
+			It("prints an error", func() {
+				expectErrorOutput("lol")
+			})
+		})
 
 		Context("when the rootfs URI is not a file", func() {
 			BeforeEach(func() {
