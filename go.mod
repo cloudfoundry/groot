@@ -5,7 +5,7 @@ go 1.19
 require (
 	code.cloudfoundry.org/lager/v3 v3.0.2
 	github.com/containers/image/v5 v5.27.0
-	github.com/onsi/ginkgo/v2 v2.11.0
+	github.com/onsi/ginkgo/v2 v2.12.0
 	github.com/onsi/gomega v1.27.10
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.0-rc4
