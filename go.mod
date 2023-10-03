@@ -6,7 +6,7 @@ require (
 	code.cloudfoundry.org/lager/v3 v3.0.2
 	github.com/containers/image/v5 v5.28.0
 	github.com/onsi/ginkgo/v2 v2.12.1
-	github.com/onsi/gomega v1.27.10
+	github.com/onsi/gomega v1.28.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.0-rc5
 	github.com/opencontainers/runtime-spec v1.1.0
@@ -22,7 +22,8 @@ require (
 	github.com/containers/ocicrypt v1.1.8 // indirect
 	github.com/containers/storage v1.50.2 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
-	github.com/docker/distribution v2.8.2+incompatible // indirect
+	github.com/distribution/reference v0.5.0 // indirect
+	github.com/docker/distribution v2.8.3+incompatible // indirect
 	github.com/docker/docker v24.0.6+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.8.0 // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
