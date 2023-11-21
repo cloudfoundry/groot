@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	code.cloudfoundry.org/lager/v3 v3.0.2
-	github.com/containers/image/v5 v5.28.0
+	github.com/containers/image/v5 v5.29.0
 	github.com/onsi/ginkgo/v2 v2.13.1
 	github.com/onsi/gomega v1.30.0
 	github.com/opencontainers/go-digest v1.0.0
@@ -20,7 +20,7 @@ require (
 	github.com/BurntSushi/toml v1.3.2 // indirect
 	github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 // indirect
 	github.com/containers/ocicrypt v1.1.9 // indirect
-	github.com/containers/storage v1.50.2 // indirect
+	github.com/containers/storage v1.51.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect
 	github.com/distribution/reference v0.5.0 // indirect
 	github.com/docker/distribution v2.8.3+incompatible // indirect
