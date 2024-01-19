@@ -68,7 +68,6 @@ func GetRepositoryTags(ctx context.Context, sys *types.SystemContext, ref types.
 	if err != nil {
 		return nil, fmt.Errorf("failed to create client: %w", err)
 	}
-	defer client.Close()
 
 	tags := make([]string, 0)
 
@@ -78,8 +77,8 @@ func GetRepositoryTags(ctx context.Context, sys *types.SystemContext, ref types.
 			return nil, err
 		}
 		defer res.Body.Close()
-		if res.StatusCode != http.StatusOK {
-			return nil, fmt.Errorf("fetching tags list: %w", registryHTTPResponseToError(res))
+		if err := httpResponseToError(res, "fetching tags list"); err != nil {
+			return nil, err
 		}
 
 		var tagsHolder struct {
@@ -95,8 +94,8 @@ func GetRepositoryTags(ctx context.Context, sys *types.SystemContext, ref types.
 			break
 		}
 
-		linkURLPart, _, _ := strings.Cut(link, ";")
-		linkURL, err := url.Parse(strings.Trim(linkURLPart, "<>"))
+		linkURLStr := strings.Trim(strings.Split(link, ";")[0], "<>")
+		linkURL, err := url.Parse(linkURLStr)
 		if err != nil {
 			return tags, err
 		}
@@ -137,7 +136,6 @@ func GetDigest(ctx context.Context, sys *types.SystemContext, ref types.ImageRef
 	if err != nil {
 		return "", fmt.Errorf("failed to create client: %w", err)
 	}
-	defer client.Close()
 
 	path := fmt.Sprintf(manifestPath, reference.Path(dr.ref), tagOrDigest)
 	headers := map[string][]string{
