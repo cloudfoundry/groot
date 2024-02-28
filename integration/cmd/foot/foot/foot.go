@@ -165,8 +165,8 @@ func must(err error) {
 
 func loadObject(obj *[]interface{}, pathname string) {
 	file, err := os.Open(pathname)
-	defer file.Close()
 	must(err)
+	defer file.Close()
 
 	err = json.NewDecoder(file).Decode(obj)
 	must(err)
