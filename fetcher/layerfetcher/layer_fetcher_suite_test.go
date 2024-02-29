@@ -2,7 +2,6 @@ package layerfetcher_test
 
 import (
 	"io"
-	"io/ioutil"
 	"os"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -18,13 +17,13 @@ func TestLayerFetcher(t *testing.T) {
 }
 
 func readAll(reader io.Reader) string {
-	content, err := ioutil.ReadAll(reader)
+	content, err := io.ReadAll(reader)
 	Expect(err).NotTo(HaveOccurred())
 	return string(content)
 }
 
 func tempFile() *os.File {
-	file, err := ioutil.TempFile("", "")
+	file, err := os.CreateTemp("", "")
 	Expect(err).NotTo(HaveOccurred())
 	return file
 }

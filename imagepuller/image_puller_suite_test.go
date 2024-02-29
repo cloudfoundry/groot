@@ -3,7 +3,7 @@ package imagepuller_test
 import (
 	"compress/gzip"
 	"io"
-	"io/ioutil"
+	"os"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -16,7 +16,7 @@ func TestImagePuller(t *testing.T) {
 }
 
 func tempDir(dir, prefix string) string {
-	path, err := ioutil.TempDir(dir, prefix)
+	path, err := os.MkdirTemp(dir, prefix)
 	Expect(err).NotTo(HaveOccurred())
 	return path
 }
@@ -28,7 +28,7 @@ func writeString(w io.Writer, s string) {
 }
 
 func readAll(r io.Reader) string {
-	content, err := ioutil.ReadAll(r)
+	content, err := io.ReadAll(r)
 	Expect(err).NotTo(HaveOccurred())
 	return string(content)
 }

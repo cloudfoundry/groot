@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"io"
-	"io/ioutil"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -18,7 +17,7 @@ var _ = Describe("Reader", func() {
 		r := &Reader{
 			Create: func() (io.ReadCloser, error) {
 				count++
-				return ioutil.NopCloser(bytes.NewBuffer([]byte{})), nil
+				return io.NopCloser(bytes.NewBuffer([]byte{})), nil
 			},
 		}
 
@@ -31,7 +30,7 @@ var _ = Describe("Reader", func() {
 		r := &Reader{
 			Create: func() (io.ReadCloser, error) {
 				count++
-				return ioutil.NopCloser(bytes.NewBuffer([]byte{})), nil
+				return io.NopCloser(bytes.NewBuffer([]byte{})), nil
 			},
 		}
 
@@ -43,7 +42,7 @@ var _ = Describe("Reader", func() {
 	It("reads from the created ReadCloser", func() {
 		r := &Reader{
 			Create: func() (io.ReadCloser, error) {
-				return ioutil.NopCloser(bytes.NewBuffer([]byte("cake"))), nil
+				return io.NopCloser(bytes.NewBuffer([]byte("cake"))), nil
 			},
 		}
 

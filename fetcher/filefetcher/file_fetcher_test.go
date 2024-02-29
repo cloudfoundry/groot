@@ -2,7 +2,6 @@ package filefetcher_test
 
 import (
 	"io"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path"
@@ -33,7 +32,7 @@ var _ = Describe("File Fetcher", func() {
 		imagePath = filepath.Join(sourceImagePath, "a_file")
 		imageURL = urlParse(imagePath)
 
-		Expect(ioutil.WriteFile(path.Join(sourceImagePath, "a_file"), []byte("hello-world"), 0600)).To(Succeed())
+		Expect(os.WriteFile(path.Join(sourceImagePath, "a_file"), []byte("hello-world"), 0600)).To(Succeed())
 		logger = lagertest.NewTestLogger("file-fetcher")
 	})
 
@@ -145,7 +144,7 @@ var _ = Describe("File Fetcher", func() {
 })
 
 func tempDir() string {
-	dir, err := ioutil.TempDir("", "")
+	dir, err := os.MkdirTemp("", "")
 	Expect(err).NotTo(HaveOccurred())
 	return dir
 }
