@@ -4,7 +4,6 @@ import (
 	"compress/gzip"
 	"io"
 	"io/ioutil"
-	"net/url"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -20,12 +19,6 @@ func tempDir(dir, prefix string) string {
 	path, err := ioutil.TempDir(dir, prefix)
 	Expect(err).NotTo(HaveOccurred())
 	return path
-}
-
-func urlParse(rawURL string) *url.URL {
-	parsed, err := url.Parse(rawURL)
-	Expect(err).NotTo(HaveOccurred())
-	return parsed
 }
 
 func writeString(w io.Writer, s string) {

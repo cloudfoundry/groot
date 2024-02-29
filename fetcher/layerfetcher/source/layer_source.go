@@ -26,7 +26,6 @@ import (
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/types"
 	digestpkg "github.com/opencontainers/go-digest"
-	imgspec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -357,13 +356,6 @@ func (s *LayerSource) v1DiffID(logger lager.Logger, layer types.BlobInfo, imgSrc
 	sha := sha256.Sum256(data)
 
 	return digestpkg.NewDigestFromHex("sha256", hex.EncodeToString(sha[:])), nil
-}
-
-func preferedMediaTypes() []string {
-	return []string{
-		imgspec.MediaTypeImageManifest,
-		manifestpkg.DockerV2Schema2MediaType,
-	}
 }
 
 func destToWindowsPath(input string) string {
