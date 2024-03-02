@@ -1,9 +1,7 @@
 package filefetcher_test
 
 import (
-	"archive/tar"
 	"io"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path"
@@ -16,7 +14,7 @@ import (
 	"code.cloudfoundry.org/lager/v3/lagertest"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/opencontainers/image-spec/specs-go/v1"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 var _ = Describe("File Fetcher", func() {
@@ -34,7 +32,7 @@ var _ = Describe("File Fetcher", func() {
 		imagePath = filepath.Join(sourceImagePath, "a_file")
 		imageURL = urlParse(imagePath)
 
-		Expect(ioutil.WriteFile(path.Join(sourceImagePath, "a_file"), []byte("hello-world"), 0600)).To(Succeed())
+		Expect(os.WriteFile(path.Join(sourceImagePath, "a_file"), []byte("hello-world"), 0600)).To(Succeed())
 		logger = lagertest.NewTestLogger("file-fetcher")
 	})
 
@@ -146,30 +144,7 @@ var _ = Describe("File Fetcher", func() {
 })
 
 func tempDir() string {
-	dir, err := ioutil.TempDir("", "")
+	dir, err := os.MkdirTemp("", "")
 	Expect(err).NotTo(HaveOccurred())
 	return dir
-}
-
-type tarEntry struct {
-	header   *tar.Header
-	contents []byte
-}
-
-func streamTar(r *tar.Reader) []tarEntry {
-	l := []tarEntry{}
-	for {
-		header, err := r.Next()
-		if err != nil {
-			Expect(err).To(Equal(io.EOF))
-			return l
-		}
-
-		contents := make([]byte, header.Size)
-		_, _ = r.Read(contents)
-		l = append(l, tarEntry{
-			header:   header,
-			contents: contents,
-		})
-	}
 }

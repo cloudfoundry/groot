@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -25,7 +24,7 @@ func (t *Foot) Unpack(logger lager.Logger, id string, parentIDs []string, layerT
 		return 0, errors.New("unpack-err")
 	}
 
-	layerTarContents, err := ioutil.ReadAll(layerTar)
+	layerTarContents, err := io.ReadAll(layerTar)
 	must(err)
 	saveObject([]interface{}{
 		UnpackArgs{ID: id, ParentIDs: parentIDs, LayerTarContents: layerTarContents},
@@ -154,7 +153,7 @@ func saveObject(obj []interface{}, pathname string) {
 
 	serialisedObj, err := json.Marshal(obj)
 	must(err)
-	must(ioutil.WriteFile(pathname, serialisedObj, 0600))
+	must(os.WriteFile(pathname, serialisedObj, 0600))
 }
 
 func must(err error) {
@@ -165,8 +164,8 @@ func must(err error) {
 
 func loadObject(obj *[]interface{}, pathname string) {
 	file, err := os.Open(pathname)
-	defer file.Close()
 	must(err)
+	defer file.Close()
 
 	err = json.NewDecoder(file).Decode(obj)
 	must(err)

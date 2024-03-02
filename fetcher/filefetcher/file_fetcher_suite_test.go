@@ -2,7 +2,6 @@ package filefetcher_test
 
 import (
 	"io"
-	"io/ioutil"
 	"net/url"
 	"testing"
 
@@ -22,7 +21,7 @@ func urlParse(rawURL string) *url.URL {
 }
 
 func readAll(r io.Reader) string {
-	content, err := ioutil.ReadAll(r)
+	content, err := io.ReadAll(r)
 	Expect(err).NotTo(HaveOccurred())
 	return string(content)
 }

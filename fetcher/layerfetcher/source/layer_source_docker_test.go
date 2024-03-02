@@ -550,7 +550,6 @@ var _ = Describe("Layer source: Docker", func() {
 				fakeRegistry.WhenGettingBlob(layerInfos[0].BlobID, 1, func(resp http.ResponseWriter, req *http.Request) {
 					resp.WriteHeader(http.StatusTeapot)
 					_, _ = io.WriteString(resp, "null")
-					return
 				})
 			})
 

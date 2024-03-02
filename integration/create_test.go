@@ -3,7 +3,7 @@ package integration_test
 import (
 	"compress/gzip"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -386,7 +386,7 @@ func getUncompressedBlobSize(path string) int64 {
 	Expect(err).NotTo(HaveOccurred())
 	defer gzipReader.Close()
 
-	bytes, err := ioutil.ReadAll(gzipReader)
+	bytes, err := io.ReadAll(gzipReader)
 	Expect(err).NotTo(HaveOccurred())
 
 	return int64(len(bytes))

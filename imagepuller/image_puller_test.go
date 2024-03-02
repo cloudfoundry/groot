@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 
 	"code.cloudfoundry.org/groot/imagepuller"
@@ -49,7 +48,7 @@ var _ = Describe("Image Puller", func() {
 			buffer := bytes.NewBuffer([]byte{})
 			stream := gzip.NewWriter(buffer)
 			defer stream.Close()
-			return ioutil.NopCloser(buffer), 0, nil
+			return io.NopCloser(buffer), 0, nil
 		}
 
 		tmpVolumesDir = tempDir("", "volumes")
@@ -105,7 +104,7 @@ var _ = Describe("Image Puller", func() {
 			stream := gzip.NewWriter(buffer)
 			defer stream.Close()
 			writeString(stream, fmt.Sprintf("layer-%s-contents", layerInfo.BlobID))
-			return ioutil.NopCloser(buffer), 1200, nil
+			return io.NopCloser(buffer), 1200, nil
 		}
 
 		imagePuller.Pull(logger, imagepuller.ImageSpec{})

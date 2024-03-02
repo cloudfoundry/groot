@@ -2,7 +2,7 @@ package integration_test
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"os"
 	"os/exec"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -42,17 +42,17 @@ func TestIntegration(t *testing.T) {
 }
 
 func writeFile(path, content string) {
-	Expect(ioutil.WriteFile(path, []byte(content), 0600)).To(Succeed())
+	Expect(os.WriteFile(path, []byte(content), 0600)).To(Succeed())
 }
 
 func tempDir(dir, prefix string) string {
-	name, err := ioutil.TempDir(dir, prefix)
+	name, err := os.MkdirTemp(dir, prefix)
 	Expect(err).NotTo(HaveOccurred())
 	return name
 }
 
 func readFile(filename string) []byte {
-	content, err := ioutil.ReadFile(filename)
+	content, err := os.ReadFile(filename)
 	Expect(err).NotTo(HaveOccurred())
 	return content
 }
