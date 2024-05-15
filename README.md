@@ -1,24 +1,16 @@
-# Contributing
+# groot
 
-See the [Contributing.md](./.github/CONTRIBUTING.md) for more
-information on how to contribute.
+[![Go Report
+Card](https://goreportcard.com/badge/code.cloudfoundry.org/groot)](https://goreportcard.com/report/code.cloudfoundry.org/groot)
+[![Go
+Reference](https://pkg.go.dev/badge/code.cloudfoundry.org/groot.svg)](https://pkg.go.dev/code.cloudfoundry.org/groot)
 
-# Working Group Charter
+A framework for building image plugins for
+[Guardian](https://github.com/cloudfoundry/guardian) in Go.
 
-This repository is maintained by [App Runtime
-Platform](https://github.com/cloudfoundry/community/blob/main/toc/working-groups/app-runtime-platform.md)
-under `Networking` area.
-
-# Contributing
-
-See the [Contributing.md](./.github/CONTRIBUTING.md) for more
-information on how to contribute.
-
-# Working Group Charter
-
-This repository is maintained by [App Runtime
-Platform](https://github.com/cloudfoundry/community/blob/main/toc/working-groups/app-runtime-platform.md)
-under `Diego` area.
+> \[!NOTE\]
+>
+> This repository should be imported as `code.cloudfoundry.org/groot`.
 
 # Contributing
 
@@ -29,7 +21,7 @@ information on how to contribute.
 
 This repository is maintained by [App Runtime
 Platform](https://github.com/cloudfoundry/community/blob/main/toc/working-groups/app-runtime-platform.md)
-under `Diego` area.
+under `Garden Containers` area.
 
 > \[!IMPORTANT\]
 >
