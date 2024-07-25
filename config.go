@@ -1,9 +1,9 @@
 package groot
 
 import (
+	"fmt"
 	"os"
 
-	"github.com/pkg/errors"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -26,11 +26,11 @@ func parseConfig(configFilePath string) (conf config, err error) {
 
 	contents, err := os.ReadFile(configFilePath)
 	if err != nil {
-		return config{}, errors.Wrap(err, "reading config file")
+		return config{}, fmt.Errorf("reading config file: %w", err)
 	}
 
 	if err := yaml.Unmarshal(contents, &conf); err != nil {
-		return config{}, errors.Wrap(err, "parsing config file")
+		return config{}, fmt.Errorf("parsing config file: %w", err)
 	}
 
 	return conf, nil

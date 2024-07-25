@@ -5,7 +5,6 @@ import (
 
 	"code.cloudfoundry.org/groot/imagepuller"
 	runspec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 )
 
 func (g *Groot) Create(handle string, diskLimit int64, excludeImageFromQuota bool) (runspec.Spec, error) {
@@ -24,7 +23,7 @@ func (g *Groot) Create(handle string, diskLimit int64, excludeImageFromQuota boo
 
 	image, err := g.ImagePuller.Pull(g.Logger, imageSpec)
 	if err != nil {
-		return runspec.Spec{}, errors.Wrap(err, "pulling image")
+		return runspec.Spec{}, fmt.Errorf("pulling image: %w", err)
 	}
 
 	quota := diskLimit
@@ -38,7 +37,7 @@ func (g *Groot) Create(handle string, diskLimit int64, excludeImageFromQuota boo
 
 	bundle, err := g.Driver.Bundle(g.Logger.Session("bundle"), handle, image.ChainIDs, quota)
 	if err != nil {
-		return runspec.Spec{}, errors.Wrap(err, "creating bundle")
+		return runspec.Spec{}, fmt.Errorf("creating bundle: %w", err)
 	}
 
 	if len(image.Config.Config.Env) > 0 {

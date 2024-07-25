@@ -2,6 +2,7 @@ package groot_test
 
 import (
 	"bytes"
+	"errors"
 	"io"
 
 	"code.cloudfoundry.org/groot"
@@ -11,7 +12,6 @@ import (
 	"code.cloudfoundry.org/lager/v3/lagertest"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	errors "github.com/pkg/errors"
 )
 
 var _ = Describe("Pull", func() {

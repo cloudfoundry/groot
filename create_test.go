@@ -2,6 +2,7 @@ package groot_test
 
 import (
 	"bytes"
+	"errors"
 	"io"
 
 	"code.cloudfoundry.org/groot"
@@ -13,7 +14,6 @@ import (
 	. "github.com/onsi/gomega"
 	imgspec "github.com/opencontainers/image-spec/specs-go/v1"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
-	errors "github.com/pkg/errors"
 )
 
 var _ = Describe("Create", func() {

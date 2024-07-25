@@ -1,12 +1,12 @@
 package imagepuller // import "code.cloudfoundry.org/groot/imagepuller"
 
 import (
+	"fmt"
 	"io"
 
 	"code.cloudfoundry.org/groot/imagepuller/ondemand"
 	"code.cloudfoundry.org/lager/v3"
 	imgspec "github.com/opencontainers/image-spec/specs-go/v1"
-	"github.com/pkg/errors"
 )
 
 //go:generate counterfeiter . Fetcher
@@ -71,7 +71,7 @@ func (p *ImagePuller) Pull(logger lager.Logger, spec ImageSpec) (Image, error) {
 
 	imageInfo, err := p.fetcher.ImageInfo(logger)
 	if err != nil {
-		return Image{}, errors.Wrap(err, "fetching list of layer infos")
+		return Image{}, fmt.Errorf("fetching list of layer infos: %w", err)
 	}
 	logger.Debug("fetched-layer-infos", lager.Data{"infos": imageInfo.LayerInfos})
 
@@ -118,7 +118,7 @@ func (p *ImagePuller) buildLayer(logger lager.Logger, layerInfo LayerInfo, paren
 		Create: func() (io.ReadCloser, error) {
 			stream, blobSize, err := p.fetcher.StreamBlob(logger, layerInfo)
 			if err != nil {
-				return nil, errors.Wrapf(err, "opening stream for blob `%s`", layerInfo.BlobID)
+				return nil, fmt.Errorf("opening stream for blob `%s`: %w", layerInfo.BlobID, err)
 			}
 
 			logger.Debug("got-stream-for-blob", lager.Data{"size": blobSize})
@@ -145,7 +145,7 @@ func quotaExceeded(logger lager.Logger, layerInfos []LayerInfo, spec ImageSpec) 
 
 	totalSize := layersSize(layerInfos)
 	if totalSize > spec.DiskLimit {
-		err := errors.Errorf("layers exceed disk quota %d/%d bytes", totalSize, spec.DiskLimit)
+		err := fmt.Errorf("layers exceed disk quota %d/%d bytes", totalSize, spec.DiskLimit)
 		logger.Error("blob-manifest-size-check-failed", err, lager.Data{
 			"totalSize":             totalSize,
 			"diskLimit":             spec.DiskLimit,
