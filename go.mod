@@ -1,13 +1,13 @@
 module code.cloudfoundry.org/groot
 
-go 1.21
+go 1.21.0
 
 toolchain go1.22.3
 
 require (
 	code.cloudfoundry.org/lager/v3 v3.0.3
-	github.com/containers/image/v5 v5.31.1
-	github.com/onsi/ginkgo/v2 v2.19.0
+	github.com/containers/image/v5 v5.32.0
+	github.com/onsi/ginkgo/v2 v2.19.1
 	github.com/onsi/gomega v1.34.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.0
@@ -22,7 +22,7 @@ require (
 	github.com/BurntSushi/toml v1.4.0 // indirect
 	github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 // indirect
 	github.com/containers/ocicrypt v1.2.0 // indirect
-	github.com/containers/storage v1.54.0 // indirect
+	github.com/containers/storage v1.55.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/distribution v2.8.3+incompatible // indirect
