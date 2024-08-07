@@ -7,7 +7,7 @@ toolchain go1.22.3
 require (
 	code.cloudfoundry.org/lager/v3 v3.0.3
 	github.com/containers/image/v5 v5.32.0
-	github.com/onsi/ginkgo/v2 v2.19.1
+	github.com/onsi/ginkgo/v2 v2.20.0
 	github.com/onsi/gomega v1.34.1
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.0
