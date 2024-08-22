@@ -1,4 +1,4 @@
-# code.cloudfoundry.org/lager/v3 v3.1.0
+# code.cloudfoundry.org/lager/v3 v3.2.0
 ## explicit; go 1.20
 code.cloudfoundry.org/lager/v3
 code.cloudfoundry.org/lager/v3/internal/truncate
@@ -184,7 +184,7 @@ github.com/syndtr/gocapability/capability
 # github.com/urfave/cli v1.22.15 => github.com/urfave/cli v1.22.1
 ## explicit; go 1.11
 github.com/urfave/cli
-# golang.org/x/exp v0.0.0-20240808152545-0cdaa3abc0fa
+# golang.org/x/exp v0.0.0-20240822175202-778ce7bba035
 ## explicit; go 1.20
 golang.org/x/exp/constraints
 golang.org/x/exp/maps
