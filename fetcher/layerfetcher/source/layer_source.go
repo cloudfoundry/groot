@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"hash"
 	"io"
@@ -25,7 +26,6 @@ import (
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/types"
 	digestpkg "github.com/opencontainers/go-digest"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -59,7 +59,7 @@ func (s *LayerSource) Manifest(logger lager.Logger) (types.Image, error) {
 	img, err := s.getImageWithRetries(logger)
 	if err != nil {
 		logger.Error("fetching-image-reference-failed", err)
-		return nil, errors.Wrap(err, "fetching image reference")
+		return nil, fmt.Errorf("fetching image reference: %w", err)
 	}
 
 	img, err = s.convertImage(logger, img)
@@ -79,7 +79,7 @@ func (s *LayerSource) Manifest(logger lager.Logger) (types.Image, error) {
 		err = e
 	}
 
-	return nil, errors.Wrap(err, "fetching image configuration")
+	return nil, fmt.Errorf("fetching image configuration: %w", err)
 }
 
 func (s *LayerSource) Blob(logger lager.Logger, layerInfo imagepuller.LayerInfo) (string, int64, error) {
@@ -142,7 +142,7 @@ func (s *LayerSource) Blob(logger lager.Logger, layerInfo imagepuller.LayerInfo)
 
 		digestReader, err = gzip.NewReader(digestReader)
 		if err != nil {
-			return "", 0, errors.Wrapf(err, "expected blob to be of type %s", layerInfo.MediaType)
+			return "", 0, fmt.Errorf("expected blob to be of type %s: %w", layerInfo.MediaType, err)
 		}
 		defer digestReader.Close()
 
@@ -159,16 +159,16 @@ func (s *LayerSource) Blob(logger lager.Logger, layerInfo imagepuller.LayerInfo)
 	uncompressedSize, err := io.Copy(blobTempFile, digestReader)
 	if err != nil {
 		logger.Error("writing-blob-to-file", err)
-		return "", 0, errors.Wrap(err, "writing blob to tempfile")
+		return "", 0, fmt.Errorf("writing blob to tempfile: %w", err)
 	}
 
 	blobIDHex := strings.Split(layerInfo.BlobID, ":")[1]
 	if err = s.checkCheckSum(logger, blobIDHash, blobIDHex, s.imageURL.Scheme); err != nil {
-		return "", 0, errors.Wrap(err, "layerID digest mismatch")
+		return "", 0, fmt.Errorf("layerID digest mismatch: %w", err)
 	}
 
 	if err = s.checkCheckSum(logger, diffIDHash, layerInfo.DiffID, s.imageURL.Scheme); err != nil {
-		return "", 0, errors.Wrap(err, "diffID digest mismatch")
+		return "", 0, fmt.Errorf("diffID digest mismatch: %w", err)
 	}
 
 	s.remainingImageQuota -= uncompressedSize
@@ -226,7 +226,7 @@ func (s *LayerSource) checkCheckSum(logger lager.Logger, hash hash.Hash, digest 
 		"downloadedChecksum": blobContentsSha,
 	})
 	if digest != blobContentsSha {
-		return errors.Errorf("expected: %s, actual: %s", digest, blobContentsSha)
+		return fmt.Errorf("expected: %s, actual: %s", digest, blobContentsSha)
 	}
 
 	return nil
@@ -238,7 +238,7 @@ func (s *LayerSource) reference(logger lager.Logger) (types.ImageReference, erro
 	transport := transports.Get(s.imageURL.Scheme)
 	ref, err := transport.ParseReference(refString)
 	if err != nil {
-		return nil, errors.Wrap(err, "parsing url failed")
+		return nil, fmt.Errorf("parsing url failed: %w", err)
 	}
 
 	return ref, nil
@@ -275,7 +275,7 @@ func (s *LayerSource) getImageWithRetries(logger lager.Logger) (types.Image, err
 		imgErr = err
 	}
 
-	return nil, errors.Wrap(imgErr, "creating image")
+	return nil, fmt.Errorf("creating image: %w", imgErr)
 }
 
 func (s *LayerSource) getImageSource(logger lager.Logger) (types.ImageSource, error) {
@@ -298,7 +298,7 @@ func (s *LayerSource) createImageSource(logger lager.Logger) (types.ImageSource,
 
 	imgSrc, err := ref.NewImageSource(context.TODO(), &s.systemContext)
 	if err != nil {
-		return nil, errors.Wrap(err, "creating image source")
+		return nil, fmt.Errorf("creating image source: %w", err)
 	}
 
 	return imgSrc, nil
@@ -327,7 +327,7 @@ func (s *LayerSource) convertImage(logger lager.Logger, originalImage types.Imag
 	for _, layer := range originalImage.LayerInfos() {
 		diffID, err := s.v1DiffID(logger, layer, imgSrc)
 		if err != nil {
-			return nil, errors.Wrap(err, "converting V1 schema failed")
+			return nil, fmt.Errorf("converting V1 schema failed: %w", err)
 		}
 		diffIDs = append(diffIDs, diffID)
 	}
@@ -346,18 +346,18 @@ func (s *LayerSource) convertImage(logger lager.Logger, originalImage types.Imag
 func (s *LayerSource) v1DiffID(logger lager.Logger, layer types.BlobInfo, imgSrc types.ImageSource) (digestpkg.Digest, error) {
 	blob, _, err := s.getBlobWithRetries(logger, imgSrc, layer)
 	if err != nil {
-		return "", errors.Wrap(err, "fetching V1 layer blob")
+		return "", fmt.Errorf("fetching V1 layer blob: %w", err)
 	}
 	defer blob.Close()
 
 	gzipReader, err := gzip.NewReader(blob)
 	if err != nil {
-		return "", errors.Wrap(err, "creating reader for V1 layer blob")
+		return "", fmt.Errorf("creating reader for V1 layer blob: %w", err)
 	}
 
 	data, err := io.ReadAll(gzipReader)
 	if err != nil {
-		return "", errors.Wrap(err, "reading V1 layer blob")
+		return "", fmt.Errorf("reading V1 layer blob: %w", err)
 	}
 	sha := sha256.Sum256(data)
 

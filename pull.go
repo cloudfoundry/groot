@@ -1,8 +1,9 @@
 package groot
 
 import (
+	"fmt"
+
 	"code.cloudfoundry.org/groot/imagepuller"
-	"github.com/pkg/errors"
 )
 
 func (g *Groot) Pull() error {
@@ -11,5 +12,5 @@ func (g *Groot) Pull() error {
 	defer g.Logger.Debug("ending")
 
 	_, err := g.ImagePuller.Pull(g.Logger, imagepuller.ImageSpec{})
-	return errors.Wrap(err, "pulling image")
+	return fmt.Errorf("pulling image: %w", err)
 }

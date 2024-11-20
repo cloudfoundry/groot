@@ -1,10 +1,9 @@
 package layerfetcher // import "code.cloudfoundry.org/groot/fetcher/layerfetcher"
 
 import (
+	"fmt"
 	"io"
 	"os"
-
-	errorspkg "github.com/pkg/errors"
 )
 
 type BlobReader struct {
@@ -15,7 +14,7 @@ type BlobReader struct {
 func NewBlobReader(blobPath string) (*BlobReader, error) {
 	reader, err := os.Open(blobPath)
 	if err != nil {
-		return nil, errorspkg.Wrap(err, "failed to open blob")
+		return nil, fmt.Errorf("failed to open blob: %w", err)
 	}
 
 	return &BlobReader{

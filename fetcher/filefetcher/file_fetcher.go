@@ -3,6 +3,7 @@ package filefetcher // import "code.cloudfoundry.org/groot/fetcher/filefetcher"
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -10,7 +11,6 @@ import (
 
 	"code.cloudfoundry.org/groot/imagepuller"
 	"code.cloudfoundry.org/lager/v3"
-	"github.com/pkg/errors"
 )
 
 type FileFetcher struct {
@@ -29,17 +29,17 @@ func (l *FileFetcher) StreamBlob(logger lager.Logger, layerInfo imagepuller.Laye
 	defer logger.Info("ending")
 
 	if _, err := os.Stat(l.imagePath); err != nil {
-		return nil, 0, errors.Wrapf(err, "local image not found in `%s`", l.imagePath)
+		return nil, 0, fmt.Errorf("local image not found in `%s`: %w", l.imagePath, err)
 	}
 
 	if err := l.validateImage(); err != nil {
-		return nil, 0, errors.Wrap(err, "invalid base image")
+		return nil, 0, fmt.Errorf("invalid base image: %w", err)
 	}
 
 	logger.Debug("opening-tar", lager.Data{"imagePath": l.imagePath})
 	stream, err := os.Open(l.imagePath)
 	if err != nil {
-		return nil, 0, errors.Wrap(err, "reading local image")
+		return nil, 0, fmt.Errorf("reading local image: %w", err)
 	}
 
 	return stream, 0, nil
@@ -54,7 +54,7 @@ func (l *FileFetcher) ImageInfo(logger lager.Logger) (imagepuller.ImageInfo, err
 	stat, err := os.Stat(l.imagePath)
 	if err != nil {
 		return imagepuller.ImageInfo{},
-			errors.Wrap(err, "fetching image timestamp")
+			fmt.Errorf("fetching image timestamp: %w", err)
 	}
 
 	return imagepuller.ImageInfo{
