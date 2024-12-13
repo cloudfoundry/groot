@@ -19,8 +19,8 @@ else
   ARGS="${*}"
 fi
 
-if [[ -f "${HOME}/workspace/devenv/functions/gcp-secret-manager-helpers.bash" ]]; then
-  . "${HOME}/workspace/devenv/functions/gcp-secret-manager-helpers.bash"
+if [[ -f "${HOME}/.bash_functions" ]]; then
+  . "${HOME}/.bash_functions"
   export DOCKER_REGISTRY_USERNAME="$(gimme-secret-value-only dockerhub-tasruntime | yq -r .user)"
   export DOCKER_REGISTRY_PASSWORD="$(gimme-secret-value-only dockerhub-tasruntime | yq -r .password)"
   export PRIVATE_DOCKER_IMAGE_URL="docker://cloudfoundry/garden-private-image-test:groot"
