@@ -1,8 +1,8 @@
 module code.cloudfoundry.org/groot
 
-go 1.22.8
+go 1.23.0
 
-toolchain go1.23.4
+toolchain go1.23.6
 
 require (
 	code.cloudfoundry.org/lager/v3 v3.26.0
@@ -40,7 +40,7 @@ require (
 	github.com/moby/sys/user v0.3.0 // indirect
 	github.com/openzipkin/zipkin-go v0.4.3 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
-	golang.org/x/exp v0.0.0-20250210185358-939b2ce775ac // indirect
+	golang.org/x/exp v0.0.0-20250218142911-aa4b98e5adaa // indirect
 	golang.org/x/net v0.35.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
