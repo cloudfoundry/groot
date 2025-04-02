@@ -5,8 +5,8 @@ go 1.23.0
 toolchain go1.23.6
 
 require (
-	code.cloudfoundry.org/lager/v3 v3.31.0
-	github.com/containers/image/v5 v5.34.2
+	code.cloudfoundry.org/lager/v3 v3.32.0
+	github.com/containers/image/v5 v5.34.3
 	github.com/onsi/ginkgo/v2 v2.23.3
 	github.com/onsi/gomega v1.36.3
 	github.com/opencontainers/go-digest v1.0.0
@@ -41,7 +41,7 @@ require (
 	github.com/openzipkin/zipkin-go v0.4.3 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
-	golang.org/x/net v0.37.0 // indirect
+	golang.org/x/net v0.38.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
 	golang.org/x/tools v0.31.0 // indirect
