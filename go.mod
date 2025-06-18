@@ -14,7 +14,7 @@ require (
 	github.com/opencontainers/runtime-spec v1.2.1
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.3
-	github.com/urfave/cli v1.22.16
+	github.com/urfave/cli v1.22.17
 	gopkg.in/yaml.v2 v2.4.0
 )
 
