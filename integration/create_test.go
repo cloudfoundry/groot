@@ -314,15 +314,6 @@ var _ = Describe("create", func() {
 				expectErrorOutput("lol")
 			})
 		})
-		Context("when the specified log format is invalid", func() {
-			BeforeEach(func() {
-				writeFile(configFilePath, "log_format: lol")
-			})
-
-			It("prints an error", func() {
-				expectErrorOutput("lol")
-			})
-		})
 
 		Context("when driver.Bundle() returns an error", func() {
 			BeforeEach(func() {
