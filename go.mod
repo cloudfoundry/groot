@@ -5,9 +5,9 @@ go 1.23.3
 toolchain go1.24.2
 
 require (
-	code.cloudfoundry.org/lager/v3 v3.43.0
+	code.cloudfoundry.org/lager/v3 v3.44.0
 	github.com/containers/image/v5 v5.36.1
-	github.com/onsi/ginkgo/v2 v2.23.4
+	github.com/onsi/ginkgo/v2 v2.24.0
 	github.com/onsi/gomega v1.38.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.1
@@ -20,6 +20,7 @@ require (
 
 require (
 	github.com/BurntSushi/toml v1.5.0 // indirect
+	github.com/Masterminds/semver/v3 v3.4.0 // indirect
 	github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 // indirect
 	github.com/containers/ocicrypt v1.2.1 // indirect
 	github.com/containers/storage v1.59.1 // indirect
