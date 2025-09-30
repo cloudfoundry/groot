@@ -5,7 +5,7 @@ go 1.24.0
 toolchain go1.24.2
 
 require (
-	code.cloudfoundry.org/lager/v3 v3.49.0
+	code.cloudfoundry.org/lager/v3 v3.50.0
 	github.com/containers/image/v5 v5.36.2
 	github.com/onsi/ginkgo/v2 v2.25.3
 	github.com/onsi/gomega v1.38.2
