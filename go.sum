@@ -1,5 +1,5 @@
-code.cloudfoundry.org/lager/v3 v3.54.0 h1:9Z/ruEQbTOUf6Rw8IqSW1dfYoUrr6xP+4pLqlCvK/cs=
-code.cloudfoundry.org/lager/v3 v3.54.0/go.mod h1:NbZTePTcvBjNBcPs/dZRsG4SOWdUVp67Vh6h/aWzrxA=
+code.cloudfoundry.org/lager/v3 v3.55.0 h1:viHGEjAl6drHqOppRXU+ZpZZUjikO5o/tI4mY//WpQg=
+code.cloudfoundry.org/lager/v3 v3.55.0/go.mod h1:1mXk1+RPluzvyusvJkrZE3KtKzmDGXoRDnVX33zthZw=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/toml v1.5.0 h1:W5quZX/G/csjUnuI8SUYlsHs9M38FC7znL0lIO+DvMg=
 github.com/BurntSushi/toml v1.5.0/go.mod h1:ukJfTF/6rtPPRCnwkur4qwRxa8vTRFBF0uk2lLoLwho=
