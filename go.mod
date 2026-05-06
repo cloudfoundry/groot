@@ -3,7 +3,7 @@ module code.cloudfoundry.org/groot
 go 1.25.0
 
 require (
-	code.cloudfoundry.org/lager/v3 v3.67.0
+	code.cloudfoundry.org/lager/v3 v3.68.0
 	github.com/containers/image/v5 v5.36.2
 	github.com/onsi/ginkgo/v2 v2.28.3
 	github.com/onsi/gomega v1.40.0
@@ -18,7 +18,7 @@ require (
 
 require (
 	github.com/BurntSushi/toml v1.6.0 // indirect
-	github.com/Masterminds/semver/v3 v3.4.0 // indirect
+	github.com/Masterminds/semver/v3 v3.5.0 // indirect
 	github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 // indirect
 	github.com/containers/ocicrypt v1.3.0 // indirect
 	github.com/containers/storage v1.59.1 // indirect
