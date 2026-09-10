@@ -42,10 +42,9 @@ func (r *FakeRegistry) Start() {
 	r.revProxy = httputil.NewSingleHostReverseProxy(r.ActualRegistryURL)
 	// Dockerhub returns 503 if the host is set to localhost as it happens with
 	// the reverse proxy
-	oldDirector := r.revProxy.Director
-	r.revProxy.Director = func(req *http.Request) {
-		oldDirector(req)
-		req.Host = r.ActualRegistryURL.Host
+	r.revProxy.Rewrite = func(req *httputil.ProxyRequest) {
+		req.SetURL(r.ActualRegistryURL)
+		req.Out.Host = r.ActualRegistryURL.Host
 	}
 
 	r.server = ghttp.NewTLSServer()
