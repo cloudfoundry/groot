@@ -1,6 +1,7 @@
 package source_test
 
 import (
+	"bytes"
 	"compress/gzip"
 	"context"
 	"fmt"
@@ -450,15 +451,18 @@ var _ = Describe("Layer source: Docker", func() {
 
 		Context("when the blob is corrupted", func() {
 			BeforeEach(func() {
+				var corruptedBlob bytes.Buffer
+				gzipWriter := gzip.NewWriter(&corruptedBlob)
+				_, _ = io.WriteString(gzipWriter, "bad-blob")
+				gzipWriter.Close()
+
 				fakeRegistry.WhenGettingBlob(layerInfos[0].BlobID, 1, func(rw http.ResponseWriter, req *http.Request) {
-					gzipWriter := gzip.NewWriter(rw)
-					_, _ = io.WriteString(gzipWriter, "bad-blob")
-					gzipWriter.Close()
+					_, _ = rw.Write(corruptedBlob.Bytes())
 				})
 				fakeRegistry.Start()
 				imageURL = urlParse(fmt.Sprintf("docker://%s/cfgarden/empty:groot", fakeRegistry.Addr()))
 				systemContext.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
-				layerInfos[0].Size = 32
+				layerInfos[0].Size = int64(corruptedBlob.Len())
 			})
 
 			AfterEach(func() {
