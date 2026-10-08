@@ -11,9 +11,9 @@ import (
 	"code.cloudfoundry.org/groot/fetcher/layerfetcher/source"
 	"code.cloudfoundry.org/groot/imagepuller"
 	"code.cloudfoundry.org/lager/v3/lagertest"
-	"github.com/containers/image/v5/types"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.podman.io/image/v5/types"
 )
 
 var _ = Describe("Layer source: OCI", func() {

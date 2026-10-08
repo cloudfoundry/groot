@@ -11,9 +11,9 @@ import (
 	"code.cloudfoundry.org/groot/imagepuller"
 	"code.cloudfoundry.org/lager/v3"
 
-	"github.com/containers/image/v5/types"
 	imgspec "github.com/opencontainers/image-spec/specs-go/v1"
 	errorspkg "github.com/pkg/errors"
+	"go.podman.io/image/v5/types"
 )
 
 //go:generate counterfeiter . Source

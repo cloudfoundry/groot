@@ -14,11 +14,11 @@ import (
 	"code.cloudfoundry.org/groot/imagepuller"
 	"code.cloudfoundry.org/groot/testhelpers"
 	"code.cloudfoundry.org/lager/v3/lagertest"
-	"github.com/containers/image/v5/types"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"go.podman.io/image/v5/types"
 )
 
 const emptyImageConfigBlob = "sha256:cdc9e972ad70c8dea1d185462fbc6120399e0839d02e33738b6c1c71b75b1c35"
