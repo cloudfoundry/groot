@@ -6,9 +6,9 @@ import (
 	"sync"
 
 	"code.cloudfoundry.org/groot/fetcher/layerfetcher"
-	"github.com/containers/image/v5/docker/reference"
-	"github.com/containers/image/v5/types"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"go.podman.io/image/v5/docker/reference"
+	"go.podman.io/image/v5/types"
 )
 
 type FakeManifest struct {

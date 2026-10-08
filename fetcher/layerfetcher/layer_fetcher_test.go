@@ -13,11 +13,11 @@ import (
 	"code.cloudfoundry.org/groot/fetcher/layerfetcher"
 	"code.cloudfoundry.org/groot/fetcher/layerfetcher/layerfetcherfakes"
 	"code.cloudfoundry.org/lager/v3/lagertest"
-	"github.com/containers/image/v5/types"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	digestpkg "github.com/opencontainers/go-digest"
 	specsv1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"go.podman.io/image/v5/types"
 )
 
 var _ = Describe("LayerFetcher", func() {

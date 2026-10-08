@@ -8,9 +8,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/containers/image/v5/types"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.podman.io/image/v5/types"
 )
 
 func TestSource(t *testing.T) {

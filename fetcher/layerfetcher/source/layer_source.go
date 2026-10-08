@@ -17,16 +17,16 @@ import (
 	"code.cloudfoundry.org/groot/fetcher/layerfetcher"
 	"code.cloudfoundry.org/groot/imagepuller"
 	"code.cloudfoundry.org/lager/v3"
-	_ "github.com/containers/image/v5/docker"
-	"github.com/containers/image/v5/image"
-	manifestpkg "github.com/containers/image/v5/manifest"
-	_ "github.com/containers/image/v5/oci/layout"
-	"github.com/containers/image/v5/pkg/blobinfocache/none"
-	"github.com/containers/image/v5/transports"
-	"github.com/containers/image/v5/types"
 	digestpkg "github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	_ "go.podman.io/image/v5/docker"
+	"go.podman.io/image/v5/image"
+	manifestpkg "go.podman.io/image/v5/manifest"
+	_ "go.podman.io/image/v5/oci/layout"
+	"go.podman.io/image/v5/pkg/blobinfocache/none"
+	"go.podman.io/image/v5/transports"
+	"go.podman.io/image/v5/types"
 )
 
 const MAX_DOCKER_RETRIES = 3
